@@ -734,7 +734,7 @@ bool HistoryItem::allowsSendNow() const {
 }
 
 bool HistoryItem::allowsForward() const {
-	return false;
+	return true;
 }
 
 bool HistoryItem::allowsEdit(TimeId now) const {

@@ -1190,7 +1190,7 @@ TextForMimeData MediaCall::clipboardText() const {
 }
 
 bool MediaCall::allowsForward() const {
-	return false;
+	return true;
 }
 
 bool MediaCall::updateInlineResultMedia(const MTPMessageMedia &media) {

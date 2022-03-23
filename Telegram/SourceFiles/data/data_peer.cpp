@@ -870,14 +870,14 @@ bool PeerData::canWrite() const {
 }
 
 bool PeerData::allowsForwarding() const {
-	if (const auto user = asUser()) {
-		return true;
-	} else if (const auto channel = asChannel()) {
-		return channel->allowsForwarding();
-	} else if (const auto chat = asChat()) {
-		return chat->allowsForwarding();
-	}
-	return false;
+	// if (const auto user = asUser()) {
+	// 	return true;
+	// } else if (const auto channel = asChannel()) {
+	// 	return channel->allowsForwarding();
+	// } else if (const auto chat = asChat()) {
+	// 	return chat->allowsForwarding();
+	// }
+	return true;
 }
 
 Data::RestrictionCheckResult PeerData::amRestricted(
