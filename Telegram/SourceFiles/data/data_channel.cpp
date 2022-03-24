@@ -474,7 +474,7 @@ bool ChannelData::canWrite() const {
 }
 
 bool ChannelData::allowsForwarding() const {
-	return !(flags() & Flag::NoForwards);
+	return true;
 }
 
 bool ChannelData::canViewMembers() const {
