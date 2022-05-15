@@ -20,6 +20,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_service_message.h"
 #include "history/view/history_view_cursor_state.h"
 #include "history/view/history_view_react_button.h"
+#include "history/view/history_view_quick_action.h"
 #include "chat_helpers/message_field.h"
 #include "mainwindow.h"
 #include "mainwidget.h"
@@ -1242,6 +1243,11 @@ bool ListWidget::hasCopyRestrictionForSelected() const {
 	if (hasCopyRestriction()) {
 		return true;
 	}
+	if (_selected.empty()) {
+		if (_selectedTextItem && _selectedTextItem->forbidsForward()) {
+			return true;
+		}
+	}
 	for (const auto &[itemId, selection] : _selected) {
 		if (const auto item = session().data().message(itemId)) {
 			if (item->forbidsForward()) {
@@ -1253,6 +1259,11 @@ bool ListWidget::hasCopyRestrictionForSelected() const {
 }
 
 bool ListWidget::showCopyRestrictionForSelected() {
+	if (_selected.empty()) {
+		if (_selectedTextItem && showCopyRestriction(_selectedTextItem)) {
+			return true;
+		}
+	}
 	for (const auto &[itemId, selection] : _selected) {
 		if (showCopyRestriction(session().data().message(itemId))) {
 			return true;
@@ -2089,8 +2100,31 @@ void ListWidget::mouseDoubleClickEvent(QMouseEvent *e) {
 		&& _overElement
 		&& _overElement->data()->isRegular()) {
 		mouseActionCancel();
-		replyToMessageRequestNotify(_overElement->data()->fullId());
+		switch (CurrentQuickAction()) {
+		case DoubleClickQuickAction::Reply: {
+			replyToMessageRequestNotify(_overElement->data()->fullId());
+		} break;
+		case DoubleClickQuickAction::React: {
+			toggleFavoriteReaction(_overElement);
+		} break;
+		default: break;
+		}
 	}
+}
+
+void ListWidget::toggleFavoriteReaction(not_null<Element*> view) const {
+	const auto favorite = session().data().reactions().favorite();
+	const auto allowed = _reactionsManager->allowedSublist();
+	if (allowed && !allowed->contains(favorite)) {
+		return;
+	}
+	const auto item = view->data();
+	if (item->chosenReaction() != favorite) {
+		if (const auto top = itemTop(view); top >= 0) {
+			view->animateReaction({ .emoji = favorite });
+		}
+	}
+	item->toggleReaction(favorite);
 }
 
 void ListWidget::trySwitchToWordSelection() {

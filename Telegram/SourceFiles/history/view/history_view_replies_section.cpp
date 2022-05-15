@@ -16,7 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_drag_area.h"
 #include "history/history_item_components.h"
 #include "history/history_item.h"
-#include "chat_helpers/send_context_menu.h" // SendMenu::Type.
+#include "menu/menu_send.h" // SendMenu::Type.
 #include "ui/chat/pinned_bar.h"
 #include "ui/chat/chat_style.h"
 #include "ui/widgets/scroll_area.h"
@@ -388,7 +388,8 @@ void RepliesWidget::setupRootView() {
 	) | rpl::map([=](Ui::MessageBarContent &&content, bool shown) {
 		return shown ? std::move(content) : Ui::MessageBarContent();
 	});
-	_rootView = std::make_unique<Ui::PinnedBar>(this, std::move(content));
+	_rootView = std::make_unique<Ui::PinnedBar>(this);
+	_rootView->setContent(std::move(content));
 
 	controller()->adaptive().oneColumnValue(
 	) | rpl::start_with_next([=](bool one) {

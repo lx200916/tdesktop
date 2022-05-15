@@ -24,7 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/labels.h"
 #include "ui/toast/toast.h"
 #include "ui/special_buttons.h"
-#include "ui/special_fields.h"
+#include "ui/widgets/fields/special_fields.h"
 #include "ui/text/text_options.h"
 #include "ui/text/text_utilities.h"
 #include "ui/unread_badge.h"
@@ -1393,6 +1393,18 @@ void EditNameBox::prepare() {
 
 	connect(_first, &Ui::InputField::submitted, [=] { submit(); });
 	connect(_last, &Ui::InputField::submitted, [=] { submit(); });
+
+	_first->customTab(true);
+	_last->customTab(true);
+
+	QObject::connect(
+		_first,
+		&Ui::InputField::tabbed,
+		[=] { _last->setFocus(); });
+	QObject::connect(
+		_last,
+		&Ui::InputField::tabbed,
+		[=] { _first->setFocus(); });
 }
 
 void EditNameBox::setInnerFocus() {

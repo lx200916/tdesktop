@@ -129,10 +129,18 @@ PRIVATE
     api/api_invite_links.h
     api/api_media.cpp
     api/api_media.h
+    api/api_messages_search.cpp
+    api/api_messages_search.h
+    api/api_messages_search_merged.cpp
+    api/api_messages_search_merged.h
     api/api_peer_photo.cpp
     api/api_peer_photo.h
     api/api_polls.cpp
     api/api_polls.h
+    api/api_report.cpp
+    api/api_report.h
+    api/api_ringtones.cpp
+    api/api_ringtones.h
     api/api_self_destruct.cpp
     api/api_self_destruct.h
     api/api_send_progress.cpp
@@ -161,6 +169,8 @@ PRIVATE
     boxes/filters/edit_filter_box.h
     boxes/filters/edit_filter_chats_list.cpp
     boxes/filters/edit_filter_chats_list.h
+    boxes/peers/add_bot_to_chat_box.cpp
+    boxes/peers/add_bot_to_chat_box.h
     boxes/peers/add_participants_box.cpp
     boxes/peers/add_participants_box.h
     boxes/peers/edit_contact_box.cpp
@@ -178,8 +188,6 @@ PRIVATE
     boxes/peers/edit_peer_invite_link.h
     boxes/peers/edit_peer_invite_links.cpp
     boxes/peers/edit_peer_invite_links.h
-    boxes/peers/edit_peer_history_visibility_box.cpp
-    boxes/peers/edit_peer_history_visibility_box.h
     boxes/peers/edit_peer_permissions_box.cpp
     boxes/peers/edit_peer_permissions_box.h
     boxes/peers/edit_peer_reactions.cpp
@@ -210,6 +218,8 @@ PRIVATE
     boxes/background_preview_box.h
     boxes/change_phone_box.cpp
     boxes/change_phone_box.h
+    boxes/choose_filter_box.cpp
+    boxes/choose_filter_box.h
     boxes/connection_box.cpp
     boxes/connection_box.h
     boxes/create_poll_box.cpp
@@ -246,6 +256,12 @@ PRIVATE
     boxes/phone_banned_box.h
     boxes/pin_messages_box.cpp
     boxes/pin_messages_box.h
+    boxes/reactions_settings_box.cpp
+    boxes/reactions_settings_box.h
+    boxes/report_messages_box.cpp
+    boxes/report_messages_box.h
+    boxes/ringtones_box.cpp
+    boxes/ringtones_box.h
     boxes/self_destruction_box.cpp
     boxes/self_destruction_box.h
     boxes/send_files_box.cpp
@@ -336,8 +352,6 @@ PRIVATE
     chat_helpers/gifs_list_widget.h
     chat_helpers/message_field.cpp
     chat_helpers/message_field.h
-    chat_helpers/send_context_menu.cpp
-    chat_helpers/send_context_menu.h
     chat_helpers/spellchecker_common.cpp
     chat_helpers/spellchecker_common.h
     chat_helpers/stickers_emoji_image_loader.cpp
@@ -393,6 +407,10 @@ PRIVATE
     core/version.h
     countries/countries_manager.cpp
     countries/countries_manager.h
+    data/notify/data_notify_settings.cpp
+    data/notify/data_notify_settings.h
+    data/notify/data_peer_notify_settings.cpp
+    data/notify/data_peer_notify_settings.h
     data/stickers/data_stickers_set.cpp
     data/stickers/data_stickers_set.h
     data/stickers/data_stickers.cpp
@@ -456,8 +474,6 @@ PRIVATE
     data/data_message_reactions.cpp
     data/data_message_reactions.h
     data/data_msg_id.h
-    data/data_notify_settings.cpp
-    data/data_notify_settings.h
     data/data_peer.cpp
     data/data_peer.h
     data/data_peer_id.cpp
@@ -566,6 +582,8 @@ PRIVATE
     history/view/controls/compose_controls_common.h
     history/view/controls/history_view_compose_controls.cpp
     history/view/controls/history_view_compose_controls.h
+    history/view/controls/history_view_compose_search.cpp
+    history/view/controls/history_view_compose_search.h
     history/view/controls/history_view_ttl_button.cpp
     history/view/controls/history_view_ttl_button.h
     history/view/controls/history_view_voice_record_bar.cpp
@@ -644,6 +662,8 @@ PRIVATE
     history/view/history_view_pinned_section.h
     history/view/history_view_pinned_tracker.cpp
     history/view/history_view_pinned_tracker.h
+    history/view/history_view_quick_action.cpp
+    history/view/history_view_quick_action.h
     history/view/history_view_react_animation.cpp
     history/view/history_view_react_animation.h
     history/view/history_view_react_button.cpp
@@ -761,6 +781,8 @@ PRIVATE
     info/profile/info_profile_widget.h
     info/settings/info_settings_widget.cpp
     info/settings/info_settings_widget.h
+    inline_bots/bot_attach_web_view.cpp
+    inline_bots/bot_attach_web_view.h
     inline_bots/inline_bot_layout_internal.cpp
     inline_bots/inline_bot_layout_internal.h
     inline_bots/inline_bot_layout_item.cpp
@@ -888,6 +910,12 @@ PRIVATE
     media/view/media_view_playback_progress.cpp
     media/view/media_view_playback_progress.h
     media/view/media_view_open_common.h
+    menu/menu_mute.cpp
+    menu/menu_mute.h
+    menu/menu_send.cpp
+    menu/menu_send.h
+    menu/menu_ttl_validator.cpp
+    menu/menu_ttl_validator.h
     mtproto/config_loader.cpp
     mtproto/config_loader.h
     mtproto/connection_abstract.cpp
@@ -962,6 +990,8 @@ PRIVATE
     platform/linux/notifications_manager_linux.h
     platform/linux/specific_linux.cpp
     platform/linux/specific_linux.h
+    platform/linux/tray_linux.cpp
+    platform/linux/tray_linux.h
     platform/mac/file_utilities_mac.mm
     platform/mac/file_utilities_mac.h
     platform/mac/launcher_mac.mm
@@ -977,6 +1007,8 @@ PRIVATE
     platform/mac/specific_mac.h
     platform/mac/specific_mac_p.mm
     platform/mac/specific_mac_p.h
+    platform/mac/tray_mac.mm
+    platform/mac/tray_mac.h
     platform/mac/window_title_mac.mm
     platform/mac/touchbar/items/mac_formatter_item.h
     platform/mac/touchbar/items/mac_formatter_item.mm
@@ -1010,6 +1042,8 @@ PRIVATE
     platform/win/notifications_manager_win.h
     platform/win/specific_win.cpp
     platform/win/specific_win.h
+    platform/win/tray_win.cpp
+    platform/win/tray_win.h
     platform/win/windows_app_user_model_id.cpp
     platform/win/windows_app_user_model_id.h
     platform/win/windows_dlls.cpp
@@ -1026,6 +1060,7 @@ PRIVATE
     platform/platform_main_window.h
     platform/platform_notifications_manager.h
     platform/platform_specific.h
+    platform/platform_tray.h
     platform/platform_window_title.h
     profile/profile_back_button.cpp
     profile/profile_back_button.h
@@ -1037,8 +1072,24 @@ PRIVATE
     profile/profile_block_widget.h
     profile/profile_cover_drop_area.cpp
     profile/profile_cover_drop_area.h
+    settings/cloud_password/settings_cloud_password_common.cpp
+    settings/cloud_password/settings_cloud_password_common.h
+    settings/cloud_password/settings_cloud_password_email.cpp
+    settings/cloud_password/settings_cloud_password_email.h
+    settings/cloud_password/settings_cloud_password_email_confirm.cpp
+    settings/cloud_password/settings_cloud_password_email_confirm.h
+    settings/cloud_password/settings_cloud_password_hint.cpp
+    settings/cloud_password/settings_cloud_password_hint.h
+    settings/cloud_password/settings_cloud_password_input.cpp
+    settings/cloud_password/settings_cloud_password_input.h
+    settings/cloud_password/settings_cloud_password_manage.cpp
+    settings/cloud_password/settings_cloud_password_manage.h
+    settings/cloud_password/settings_cloud_password_start.cpp
+    settings/cloud_password/settings_cloud_password_start.h
     settings/settings_advanced.cpp
     settings/settings_advanced.h
+    settings/settings_blocked_peers.cpp
+    settings/settings_blocked_peers.h
     settings/settings_chat.cpp
     settings/settings_chat.h
     settings/settings_calls.cpp
@@ -1055,6 +1106,8 @@ PRIVATE
     settings/settings_information.h
     settings/settings_intro.cpp
     settings/settings_intro.h
+    settings/settings_local_passcode.cpp
+    settings/settings_local_passcode.h
     settings/settings_main.cpp
     settings/settings_main.h
     settings/settings_notifications.cpp
@@ -1063,6 +1116,7 @@ PRIVATE
     settings/settings_privacy_controllers.h
     settings/settings_privacy_security.cpp
     settings/settings_privacy_security.h
+    settings/settings_type.h
     storage/details/storage_file_utilities.cpp
     storage/details/storage_file_utilities.h
     storage/details/storage_settings_scheme.cpp
@@ -1229,6 +1283,8 @@ PRIVATE
     settings.cpp
     settings.h
     stdafx.h
+    tray.cpp
+    tray.h
 )
 
 if (NOT build_winstore)
@@ -1278,6 +1334,8 @@ PRIVATE
     qrc/emoji_6.qrc
     qrc/emoji_7.qrc
     qrc/emoji_preview.qrc
+    qrc/telegram/animations.qrc
+    qrc/telegram/export.qrc
     qrc/telegram/telegram.qrc
     qrc/telegram/sounds.qrc
     winrc/Telegram.rc

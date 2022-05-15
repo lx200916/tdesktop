@@ -316,8 +316,7 @@ infoProfileSeparatorPadding: margins(
 
 infoIconFg: windowBoldFg;
 infoIconInformation: icon {{ "info/info_information", infoIconFg }};
-//infoIconMembers: icon {{ "info/edit/group_manage_members", infoIconFg, point(-2px, 0px) }};
-infoIconRequests: icon {{ "info/info_add_member", infoIconFg, point(0px, 2px) }};
+infoIconAddMember: icon {{ "info/info_add_member", infoIconFg }};
 infoIconNotifications: icon {{ "info/info_notifications", infoIconFg }};
 infoIconMediaPhoto: icon {{ "info/info_media_photo", infoIconFg }};
 infoIconMediaVideo: icon {{ "info/info_media_video", infoIconFg }};
@@ -328,12 +327,14 @@ infoIconMediaLink: icon {{ "info/info_media_link", infoIconFg }};
 infoIconMediaGroup: icon {{ "info/info_common_groups", infoIconFg }};
 infoIconMediaVoice: icon {{ "info/info_media_voice", infoIconFg }};
 infoIconMediaRound: icon {{ "info/info_media_round", infoIconFg }};
-infoIconRecentActions: icon {{ "info/edit/group_manage_actions", infoIconFg, point(-2px, -1px) }};
-infoIconAdministrators: icon {{ "info/edit/group_manage_admins", infoIconFg, point(-3px, 0px) }};
-infoIconBlacklist: icon {{ "info/info_blacklist", infoIconFg, point(-2px, -2px) }};
-infoIconPermissions: icon {{ "info/edit/group_manage_permissions", infoIconFg, point(0px, -2px) }};
-infoIconInviteLinks: icon {{ "info/edit/group_manage_links", infoIconFg, point(-2px, 0px) }};
-infoIconReactions: icon {{ "info/edit/group_manage_reactions", infoIconFg }};
+
+infoRoundedIconRequests: icon {{ "info/edit/group_manage_join_requests", settingsIconFg }};
+infoRoundedIconRecentActions: icon {{ "info/edit/group_manage_actions", settingsIconFg }};
+infoRoundedIconAdministrators: icon {{ "info/edit/group_manage_admins", settingsIconFg }};
+infoRoundedIconInviteLinks: icon {{ "info/edit/group_manage_links", settingsIconFg }};
+infoRoundedIconReactions: icon {{ "info/edit/group_manage_reactions", settingsIconFg }};
+infoRoundedIconSignature: icon {{ "info/edit/channel_manage_signature", settingsIconFg }};
+
 infoIconShare: icon {{ "info/info_share", infoIconFg }};
 infoIconEdit: icon {{ "info/info_edit", infoIconFg }};
 infoIconDelete: icon {{ "info/info_delete", infoIconFg }};
@@ -545,23 +546,20 @@ managePeerButton: SettingsCountButton {
 
 peerPermissionsButton: SettingsCountButton(managePeerButton) {
 	button: SettingsButton(infoProfileButton) {
-		padding: margins(24px, 12px, 24px, 10px);
+		padding: margins(22px, 12px, 24px, 10px);
 	}
 	iconPosition: point(24px, 5px);
 }
 
 manageGroupButton: SettingsCountButton(managePeerButton) {
 	button: SettingsButton(infoProfileButton) {
-		padding: margins(72px, 10px, 24px, 8px);
+		padding: margins(60px, 10px, 24px, 8px);
 	}
 	labelPosition: point(22px, 12px);
 	iconPosition: point(20px, 4px);
 }
 
 manageGroupTopButtonWithText: SettingsCountButton(manageGroupButton) {
-	button: SettingsButton(infoProfileButton) {
-		padding: margins(22px, 10px, 24px, 8px);
-	}
 	labelPosition: point(22px, 10px);
 	iconPosition: point(0px, 0px);
 }
@@ -608,7 +606,9 @@ editPeerHistoryVisibilityTopSkip: 8px;
 editPeerPhotoMargins: margins(22px, 16px, 22px, 8px);
 editPeerTitle: defaultInputField;
 editPeerTitleMargins: margins(27px, 21px, 22px, 8px);
-editPeerDescription: newGroupDescription;
+editPeerDescription: InputField(newGroupDescription) {
+	borderFg: transparent;
+}
 editPeerDescriptionMargins: margins(22px, 5px, 22px, 16px);
 editPeerPrivaciesMargins: margins(15px, 7px, 22px, 0px);
 editPeerPrivacyTopSkip: 10px;
@@ -624,13 +624,6 @@ editPeerPrivacyBoxCheckbox: Checkbox(defaultBoxCheckbox) {
 editPeerHistoryVisibilityLabelMargins: margins(34px, 0px, 48px, 0px);
 editPeerPrivacyLabelMargins: margins(42px, 0px, 34px, 0px);
 editPeerPreHistoryLabelMargins: margins(34px, 0px, 34px, 0px);
-editPeerSectionLabel: FlatLabel(boxTitle) {
-	style: TextStyle(defaultTextStyle) {
-		font: font(15px semibold);
-		linkFont: font(15px semibold);
-		linkFontOver: font(15px semibold underline);
-	}
-}
 editPeerUsernameTitleLabelMargins: margins(22px, 17px, 22px, 10px);
 editPeerUsernameFieldMargins: margins(22px, 0px, 22px, 20px);
 editPeerUsername: setupChannelLink;
@@ -639,7 +632,6 @@ editPeerInviteLink: FlatLabel(defaultFlatLabel) {
 	minWidth: 1px; // for break everywhere
 	style: boxTextStyle;
 }
-editPeerInviteLinkButton: boxLinkButton;
 editPeerUsernameGood: FlatLabel(defaultFlatLabel) {
 	textFg: boxTextFgGood;
 	style: boxTextStyle;
@@ -648,24 +640,19 @@ editPeerUsernameError: FlatLabel(editPeerUsernameGood) {
 	textFg: boxTextFgError;
 }
 editPeerUsernamePosition: point(22px, 18px);
-editPeerInviteLinkSkip: 10px;
-editPeerInvitesMargins: margins(22px, 17px, 22px, 16px);
-editPeerInvitesTopSkip: 10px;
-editPeerInvitesSkip: 10px;
-editPeerInviteLinkBoxBottomSkip: 15px;
 
 editPeerReactionsButton: SettingsButton(infoProfileButton) {
 	padding: margins(59px, 13px, 8px, 11px);
 }
-editPeerReactionsPreview: 48px;
-editPeerReactionsIconLeft: 12px;
+editPeerReactionsPreview: 24px;
+editPeerReactionsIconLeft: 21px;
 
 historyTopBarBack: IconButton(infoTopBarBack) {
 	width: 52px;
 }
 topBarHeight: 54px;
-topBarMenuPosition: point(-2px, 35px);
-topBarMenuGroupCallSkip: 40px;
+topBarMenuPosition: point(-6px, 45px);
+topBarMenuGroupCallSkip: 20px;
 topBarDuration: 200;
 topBarBackward: icon {{ "title_back", menuIconFg }};
 topBarForwardAlpha: 0.6;
@@ -753,36 +740,6 @@ topBarConnectingAnimation: InfiniteRadialAnimation(defaultInfiniteRadialAnimatio
 }
 
 infoFeedLeaveIconMargins: margins(10px, 12px, 20px, 10px);
-
-separatePanelBorderCacheSize: 60px;
-separatePanelTitleHeight: 62px;
-separatePanelClose: IconButton(boxTitleClose) {
-	width: 60px;
-	height: 60px;
-
-	rippleAreaPosition: point(8px, 8px);
-	rippleAreaSize: 44px;
-	ripple: RippleAnimation(defaultRippleAnimation) {
-		color: windowBgOver;
-	}
-}
-separatePanelTitleFont: font(18px semibold);
-separatePanelTitle: FlatLabel(defaultFlatLabel) {
-	textFg: boxTitleFg;
-	maxHeight: 26px;
-	style: TextStyle(defaultTextStyle) {
-		font: separatePanelTitleFont;
-		linkFont: separatePanelTitleFont;
-		linkFontOver: font(18px semibold underline);
-	}
-}
-separatePanelTitleTop: 18px;
-separatePanelTitleLeft: 22px;
-separatePanelTitleSkip: 0px;
-separatePanelBack: IconButton(separatePanelClose) {
-	icon: infoTopBarBackIcon;
-	iconOver: infoTopBarBackIconOver;
-}
 
 inviteLinkField: FlatInput(defaultFlatInput) {
 	font: font(fsize);

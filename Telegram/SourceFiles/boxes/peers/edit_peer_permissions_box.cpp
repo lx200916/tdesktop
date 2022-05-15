@@ -28,6 +28,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "mainwindow.h"
 #include "apiwrap.h"
+#include "settings/settings_common.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 #include "styles/style_info.h"
@@ -569,19 +570,10 @@ void EditPeerPermissionsBox::addSlowmodeLabels(
 			(!seconds
 				? tr::lng_rights_slowmode_off(tr::now)
 				: (seconds < 60)
-				? tr::lng_rights_slowmode_seconds(
-					tr::now,
-					lt_count,
-					seconds)
+				? tr::lng_seconds_tiny(tr::now, lt_count, seconds)
 				: (seconds < 3600)
-				? tr::lng_rights_slowmode_minutes(
-					tr::now,
-					lt_count,
-					seconds / 60)
-				: tr::lng_rights_slowmode_hours(
-					tr::now,
-					lt_count,
-					seconds / 3600)));
+				? tr::lng_minutes_tiny(tr::now, lt_count, seconds / 60)
+				: tr::lng_hours_tiny(tr::now, lt_count,seconds / 3600)));
 		rpl::combine(
 			labels->widthValue(),
 			label->widthValue()
@@ -621,7 +613,8 @@ void EditPeerPermissionsBox::addSuggestGigagroup(
 		AboutGigagroupCallback(
 			_peer->asChannel(),
 			_navigation->parentController()),
-		st::peerPermissionsButton));
+		st::peerPermissionsButton,
+		{}));
 
 	container->add(
 		object_ptr<Ui::DividerLabel>(
@@ -654,7 +647,8 @@ void EditPeerPermissionsBox::addBannedButtons(
 				_peer,
 				ParticipantsBoxController::Role::Restricted);
 		},
-		st::peerPermissionsButton));
+		st::peerPermissionsButton,
+		{}));
 	if (channel) {
 		container->add(EditPeerInfoBox::CreateButton(
 			container,
@@ -667,7 +661,8 @@ void EditPeerPermissionsBox::addBannedButtons(
 					_peer,
 					ParticipantsBoxController::Role::Kicked);
 			},
-			st::peerPermissionsButton));
+			st::peerPermissionsButton,
+			{}));
 	}
 }
 

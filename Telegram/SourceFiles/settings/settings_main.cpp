@@ -10,6 +10,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "settings/settings_common.h"
 #include "settings/settings_codes.h"
 #include "settings/settings_chat.h"
+#include "settings/settings_information.h"
+#include "settings/settings_notifications.h"
+#include "settings/settings_privacy_security.h"
+#include "settings/settings_advanced.h"
+#include "settings/settings_folders.h"
+#include "settings/settings_calls.h"
 #include "boxes/language_box.h"
 #include "boxes/username_box.h"
 #include "ui/boxes/confirm_box.h"
@@ -108,6 +114,9 @@ Cover::Cover(
 
 	_name->setSelectable(true);
 	_name->setContextCopyText(tr::lng_profile_copy_fullname(tr::now));
+
+	_phone->setSelectable(true);
+	_phone->setContextCopyText(tr::lng_profile_copy_phone(tr::now));
 
 	initViewers();
 	setupChildGeometry();
@@ -251,20 +260,20 @@ void SetupSections(
 	} else {
 		addSection(
 			tr::lng_settings_information(),
-			Type::Information,
+			Information::Id(),
 			{ &st::settingsIconAccount, kIconLightOrange });
 	}
 	addSection(
 		tr::lng_settings_section_notify(),
-		Type::Notifications,
+		Notifications::Id(),
 		{ &st::settingsIconNotifications, kIconRed });
 	addSection(
 		tr::lng_settings_section_privacy(),
-		Type::PrivacySecurity,
+		PrivacySecurity::Id(),
 		{ &st::settingsIconLock, kIconGreen });
 	addSection(
 		tr::lng_settings_section_chat_settings(),
-		Type::Chat,
+		Chat::Id(),
 		{ &st::settingsIconChat, kIconLightBlue });
 
 	const auto preload = [=] {
@@ -307,16 +316,16 @@ void SetupSections(
 			) | rpl::before_next(preloadIfEnabled));
 	}
 	slided->entity()->setClickedCallback([=] {
-		showOther(Type::Folders);
+		showOther(Folders::Id());
 	});
 
 	addSection(
 		tr::lng_settings_advanced(),
-		Type::Advanced,
+		Advanced::Id(),
 		{ &st::settingsIconGeneral, kIconPurple });
 	addSection(
 		tr::lng_settings_section_call_settings(),
-		Type::Calls,
+		Calls::Id(),
 		{ &st::settingsIconCalls, kIconGreen });
 
 	SetupLanguageButton(container);
@@ -522,6 +531,10 @@ Main::Main(
 : Section(parent)
 , _controller(controller) {
 	setupContent(controller);
+}
+
+rpl::producer<QString> Main::title() {
+	return tr::lng_menu_settings();
 }
 
 void Main::keyPressEvent(QKeyEvent *e) {

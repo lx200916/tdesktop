@@ -477,14 +477,11 @@ void PipPanel::setPositionDefault() {
 	if (parentScreen && myScreen && myScreen != parentScreen) {
 		widget()->setScreen(parentScreen);
 	}
-	const auto screen = parentScreen
-		? parentScreen
-		: QGuiApplication::primaryScreen();
 	auto position = Position();
 	position.snapped = RectPart::Top | RectPart::Left;
-	position.screen = screen->geometry();
+	position.screen = parentScreen->geometry();
 	position.geometry = QRect(0, 0, st::pipDefaultSize, st::pipDefaultSize);
-	setPositionOnScreen(position, screen->availableGeometry());
+	setPositionOnScreen(position, parentScreen->availableGeometry());
 }
 
 void PipPanel::setPositionOnScreen(Position position, QRect available) {
@@ -1604,6 +1601,7 @@ void Pip::restartAtSeekPosition(crl::time position) {
 
 	auto options = Streaming::PlaybackOptions();
 	options.position = position;
+	options.hwAllowed = Core::App().settings().hardwareAcceleratedVideo();
 	options.audioId = _instance.player().prepareLegacyState().id;
 
 	Assert(8 && _delegate->pipPlaybackSpeed() >= 0.5
