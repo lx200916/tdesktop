@@ -337,7 +337,9 @@ rpl::producer<bool> PeerPremiumValue(not_null<PeerData*> peer) {
 }
 
 rpl::producer<bool> AmPremiumValue(not_null<Main::Session*> session) {
-	return PeerPremiumValue(session->user());
+		// return PeerPremiumValue(session->user());
+
+	return rpl::single(true);
 }
 
 TimeId SortByOnlineValue(not_null<UserData*> user, TimeId now) {
