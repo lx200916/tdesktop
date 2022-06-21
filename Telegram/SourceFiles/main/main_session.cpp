@@ -248,6 +248,7 @@ rpl::producer<bool> Session::premiumPossibleValue() const {
 	 }) | rpl::map([=] {
 	 	return _user->isPremium();
 	 });
+premium = rpl::single(true);
 	
 	return rpl::combine(
 		std::move(premium),
