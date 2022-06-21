@@ -242,14 +242,13 @@ bool Session::premiumBadgesShown() const {
 
 rpl::producer<bool> Session::premiumPossibleValue() const {
 	using namespace rpl::mappers;
-
-	// auto premium = _user->flagsValue(
-	// ) | rpl::filter([=](UserData::Flags::Change change) {
-	// 	return (change.diff & UserDataFlag::Premium);
-	// }) | rpl::map([=] {
-	// 	return _user->isPremium();
-	// });
-	auto premium = true;
+ auto premium = _user->flagsValue(
+	 ) | rpl::filter([=](UserData::Flags::Change change) {
+	 	return (change.diff & UserDataFlag::Premium);
+	 }) | rpl::map([=] {
+	 	return _user->isPremium();
+	 });
+	
 	return rpl::combine(
 		std::move(premium),
 		_premiumPossible.value(),
