@@ -15,6 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/effects/animations.h"
 #include "ui/effects/radial_animation.h"
 #include "ui/emoji_config.h"
+#include "ui/painter.h"
 #include "ui/ui_utility.h"
 #include "core/application.h"
 #include "lang/lang_keys.h"
@@ -40,9 +41,9 @@ inline auto PreviewPath(int i) {
 
 const auto kSets = {
 	Set{ { 0,    0,         0, "Mac" },       PreviewPath(0) },
-	Set{ { 1, 1112, 7'914'459, "Android" },   PreviewPath(1) },
-	Set{ { 2, 1113, 5'287'724, "Twemoji" },   PreviewPath(2) },
-	Set{ { 3, 1114, 6'687'347, "JoyPixels" }, PreviewPath(3) },
+	Set{ { 1, 1392, 8'184'590, "Android" },   PreviewPath(1) },
+	Set{ { 2, 1393, 5'413'219, "Twemoji" },   PreviewPath(2) },
+	Set{ { 3, 1394, 6'967'218, "JoyPixels" }, PreviewPath(3) },
 };
 
 using Loading = MTP::DedicatedLoader::Progress;
@@ -93,8 +94,8 @@ private:
 	void setupLabels(const Set &set);
 	void setupPreview(const Set &set);
 	void setupAnimation();
-	void paintPreview(Painter &p) const;
-	void paintRadio(Painter &p);
+	void paintPreview(QPainter &p) const;
+	void paintRadio(QPainter &p);
 	void setupHandler();
 	void load();
 	void radialAnimationCallback(crl::time now);
@@ -230,7 +231,7 @@ Row::Row(QWidget *widget, not_null<Main::Session*> session, const Set &set)
 }
 
 void Row::paintEvent(QPaintEvent *e) {
-	Painter p(this);
+	auto p = QPainter(this);
 
 	const auto over = showOver();
 	const auto bg = over ? st::windowBgOver : st::windowBg;
@@ -241,7 +242,7 @@ void Row::paintEvent(QPaintEvent *e) {
 	paintRadio(p);
 }
 
-void Row::paintPreview(Painter &p) const {
+void Row::paintPreview(QPainter &p) const {
 	const auto x = st::manageEmojiPreviewPadding.left();
 	const auto y = st::manageEmojiPreviewPadding.top();
 	const auto width = st::manageEmojiPreviewWidth;
@@ -256,7 +257,7 @@ void Row::paintPreview(Painter &p) const {
 	}
 }
 
-void Row::paintRadio(Painter &p) {
+void Row::paintRadio(QPainter &p) {
 	if (_loading && !_loading->animating()) {
 		_loading = nullptr;
 	}

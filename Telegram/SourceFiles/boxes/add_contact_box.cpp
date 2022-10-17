@@ -31,6 +31,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/text/text_utilities.h"
 #include "ui/unread_badge.h"
 #include "ui/ui_utility.h"
+#include "ui/painter.h"
 #include "data/data_channel.h"
 #include "data/data_chat.h"
 #include "data/data_user.h"
@@ -269,7 +270,7 @@ void AddContactBox::setInnerFocus() {
 void AddContactBox::paintEvent(QPaintEvent *e) {
 	BoxContent::paintEvent(e);
 
-	Painter p(this);
+	auto p = QPainter(this);
 	if (_retrying) {
 		p.setPen(st::boxTextFg);
 		p.setFont(st::boxTextFont);
@@ -379,10 +380,7 @@ void AddContactBox::save() {
 				MTP_string(lastName)))
 	)).done(crl::guard(weak, [=](
 			const MTPcontacts_ImportedContacts &result) {
-		const auto &data = result.match([](
-				const auto &data) -> const MTPDcontacts_importedContacts& {
-			return data;
-		});
+		const auto &data = result.data();
 		session->data().processUsers(data.vusers());
 		if (!weak) {
 			return;
@@ -900,10 +898,10 @@ void SetupChannelBox::prepare() {
 }
 
 void SetupChannelBox::setInnerFocus() {
-	if (_link->isHidden()) {
-		setFocus();
-	} else {
+	if (!_link->isHidden()) {
 		_link->setFocusFast();
+	} else {
+		BoxContent::setInnerFocus();
 	}
 }
 
@@ -1094,7 +1092,7 @@ void SetupChannelBox::save() {
 			MTP_string(_sentUsername)
 		)).done([=] {
 			_channel->setName(
-				TextUtilities::SingleLine(_channel->name),
+				TextUtilities::SingleLine(_channel->name()),
 				_sentUsername);
 			closeBox();
 		}).fail([=](const MTP::Error &error) {
@@ -1167,7 +1165,7 @@ void SetupChannelBox::handleChange() {
 
 void SetupChannelBox::check() {
 	if (_checkRequestId) {
-		_channel->session().api().request(_checkRequestId).cancel();
+		_api.request(_checkRequestId).cancel();
 	}
 	const auto link = _link->text().trimmed();
 	if (link.size() >= Ui::EditPeer::kMinUsernameLength) {
@@ -1242,7 +1240,7 @@ void SetupChannelBox::updateFail(UsernameResult result) {
 	if ((result == UsernameResult::Ok)
 		|| (_sentUsername == _channel->username)) {
 		_channel->setName(
-			TextUtilities::SingleLine(_channel->name),
+			TextUtilities::SingleLine(_channel->name()),
 			TextUtilities::SingleLine(_sentUsername));
 		closeBox();
 	} else if (result == UsernameResult::Invalid) {

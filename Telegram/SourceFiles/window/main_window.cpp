@@ -27,6 +27,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/toast/toast.h"
 #include "ui/widgets/shadow.h"
 #include "ui/controls/window_outdated_bar.h"
+#include "ui/painter.h"
 #include "ui/ui_utility.h"
 #include "apiwrap.h"
 #include "mainwindow.h"
@@ -124,9 +125,12 @@ QIcon CreateIcon(Main::Session *session, bool returnNullIfDefault) {
 
 	auto result = QIcon(Ui::PixmapFromImage(base::duplicate(Logo())));
 
-#if defined Q_OS_UNIX && !defined Q_OS_MAC
+	if constexpr (!Platform::IsLinux()) {
+		return result;
+	}
+
 	const auto iconFromTheme = QIcon::fromTheme(
-		Platform::GetIconName(),
+		base::IconName(),
 		result);
 
 	result = QIcon();
@@ -162,7 +166,6 @@ QIcon CreateIcon(Main::Session *session, bool returnNullIfDefault) {
 
 		result.addPixmap(iconPixmap);
 	}
-#endif
 
 	return result;
 }
@@ -903,7 +906,7 @@ Core::WindowPosition MainWindow::SecondaryInitPosition() {
 }
 
 bool MainWindow::minimizeToTray() {
-	if (Core::Quitting()/* || !hasTrayIcon()*/) {
+	if (Core::Quitting() || !Core::App().tray().has()) {
 		return false;
 	}
 
@@ -1000,6 +1003,7 @@ void MainWindow::launchDrag(
 	// Qt destroys this QDrag automatically after the drag is finished
 	// We must not delete this at the end of this function, as this breaks DnD on Linux
 	auto drag = new QDrag(this);
+	KUrlMimeData::exportUrlsToPortal(data.get());
 	drag->setMimeData(data.release());
 	drag->exec(Qt::CopyAction);
 

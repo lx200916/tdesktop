@@ -103,7 +103,7 @@ void SendExistingMedia(
 		sendFlags |= MTPmessages_SendMedia::Flag::f_send_as;
 	}
 	const auto messagePostAuthor = peer->isBroadcast()
-		? session->user()->name
+		? session->user()->name()
 		: QString();
 
 	auto caption = TextWithEntities{
@@ -231,7 +231,8 @@ bool SendDice(MessageToSend &message) {
 	const auto full = QStringView(message.textWithTags.text).trimmed();
 	auto length = 0;
 	if (!Ui::Emoji::Find(full.data(), full.data() + full.size(), &length)
-		|| length != full.size()) {
+		|| length != full.size()
+		|| !message.textWithTags.tags.isEmpty()) {
 		return false;
 	}
 	auto &account = message.action.history->session().account();
@@ -290,7 +291,7 @@ bool SendDice(MessageToSend &message) {
 		sendFlags |= MTPmessages_SendMedia::Flag::f_send_as;
 	}
 	const auto messagePostAuthor = peer->isBroadcast()
-		? session->user()->name
+		? session->user()->name()
 		: QString();
 	const auto replyTo = message.action.replyTo;
 
@@ -423,7 +424,7 @@ void SendConfirmedFile(
 		? PeerId()
 		: session->userPeerId();
 	const auto messagePostAuthor = peer->isBroadcast()
-		? session->user()->name
+		? session->user()->name()
 		: QString();
 
 	const auto media = MTPMessageMedia([&] {

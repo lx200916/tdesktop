@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/sandbox.h"
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
+#include "ui/painter.h"
 #include "styles/style_window.h"
 
 #include <QtWidgets/QMenu>
@@ -411,6 +412,10 @@ rpl::producer<> Tray::hideToTrayRequests() const {
 
 rpl::producer<> Tray::iconClicks() const {
 	return rpl::never<>();
+}
+
+bool Tray::hasIcon() const {
+	return _nativeIcon != nullptr;
 }
 
 rpl::lifetime &Tray::lifetime() {

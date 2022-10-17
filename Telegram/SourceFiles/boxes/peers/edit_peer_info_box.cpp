@@ -473,7 +473,7 @@ object_ptr<Ui::RpWidget> Controller::createTitleEdit() {
 			(_isGroup
 				? tr::lng_dlg_new_group_name
 				: tr::lng_dlg_new_channel_name)(),
-			_peer->name),
+			_peer->name()),
 		st::editPeerTitleMargins);
 	result->entity()->setMaxLength(Ui::EditPeer::kMaxGroupChannelTitle);
 	result->entity()->setInstantReplaces(Ui::InstantReplaces::Default());
@@ -608,7 +608,7 @@ void Controller::refreshHistoryVisibility() {
 	const auto withUsername = _typeDataSavedValue
 		&& (_typeDataSavedValue->privacy == Privacy::HasUsername);
 	_controls.historyVisibilityWrap->toggle(
-		(withUsername
+		(!withUsername
 			&& !_channelHasLocationOriginalValue
 			&& (!_linkedChatSavedValue || !*_linkedChatSavedValue)),
 		anim::type::instant);
@@ -769,15 +769,13 @@ void Controller::fillLinkedChatButton() {
 	auto label = isGroup
 		? _linkedChatUpdates.events(
 		) | rpl::map([](ChannelData *chat) {
-			return chat ? chat->name : QString();
+			return chat ? chat->name() : QString();
 		}) | rpl::type_erased()
 		: rpl::combine(
 			tr::lng_manage_discussion_group_add(),
 			_linkedChatUpdates.events()
 		) | rpl::map([=](const QString &add, ChannelData *chat) {
-			return chat
-				? chat->name
-				: add;
+			return chat ? chat->name() : add;
 		}) | rpl::type_erased();
 	AddButtonWithText(
 		_controls.buttonsLayout,
@@ -990,21 +988,30 @@ void Controller::fillManageSection() {
 
 	if (canEditReactions()) {
 		const auto session = &_peer->session();
-		auto reactionsCount = Info::Profile::MigratedOrMeValue(
+		auto allowedReactions = Info::Profile::MigratedOrMeValue(
 			_peer
-		) | rpl::map(
-			Info::Profile::AllowedReactionsCountValue
-		) | rpl::flatten_latest();
-		auto fullCount = Info::Profile::FullReactionsCountValue(session);
+		) | rpl::map([=](not_null<PeerData*> peer) {
+			return peer->session().changes().peerFlagsValue(
+				peer,
+				Data::PeerUpdate::Flag::Reactions
+			) | rpl::map([=] {
+				return Data::PeerAllowedReactions(peer);
+			});
+		}) | rpl::flatten_latest();
 		auto label = rpl::combine(
-			std::move(reactionsCount),
-			std::move(fullCount)
-		) | rpl::map([=](int allowed, int total) {
-			return allowed
-				? QString::number(allowed) + " / " + QString::number(total)
+			std::move(allowedReactions),
+			Info::Profile::FullReactionsCountValue(session)
+		) | rpl::map([=](const Data::AllowedReactions &allowed, int total) {
+			const auto some = int(allowed.some.size());
+			return (allowed.type != Data::AllowedReactionsType::Some)
+				? tr::lng_manage_peer_reactions_on(tr::now)
+				: some
+				? (QString::number(some)
+					+ " / "
+					+ QString::number(std::max(some, total)))
 				: tr::lng_manage_peer_reactions_off(tr::now);
 		});
-		const auto done = [=](const std::vector<QString> &chosen) {
+		const auto done = [=](const Data::AllowedReactions &chosen) {
 			SaveAllowedReactions(_peer, chosen);
 		};
 		AddButtonWithCount(
@@ -1014,10 +1021,11 @@ void Controller::fillManageSection() {
 			[=] {
 				_navigation->parentController()->show(Box(
 					EditAllowedReactionsBox,
+					_navigation,
 					!_peer->isBroadcast(),
 					session->data().reactions().list(
 						Data::Reactions::Type::Active),
-					*Data::PeerAllowedReactions(_peer),
+					Data::PeerAllowedReactions(_peer),
 					done));
 			},
 			{ &st::infoRoundedIconReactions, Settings::kIconRed });
@@ -1388,14 +1396,14 @@ void Controller::saveUsername() {
 		MTP_string(*_savingData.username)
 	)).done([=] {
 		channel->setName(
-			TextUtilities::SingleLine(channel->name),
+			TextUtilities::SingleLine(channel->name()),
 			*_savingData.username);
 		continueSave();
 	}).fail([=](const MTP::Error &error) {
 		const auto &type = error.type();
 		if (type == qstr("USERNAME_NOT_MODIFIED")) {
 			channel->setName(
-				TextUtilities::SingleLine(channel->name),
+				TextUtilities::SingleLine(channel->name()),
 				TextUtilities::SingleLine(*_savingData.username));
 			continueSave();
 			return;
@@ -1450,7 +1458,7 @@ void Controller::saveLinkedChat() {
 }
 
 void Controller::saveTitle() {
-	if (!_savingData.title || *_savingData.title == _peer->name) {
+	if (!_savingData.title || *_savingData.title == _peer->name()) {
 		return continueSave();
 	}
 

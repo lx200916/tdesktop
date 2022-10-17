@@ -27,7 +27,7 @@
     <developer_name>John Preston</developer_name>
     <url type="homepage">https://desktop.telegram.org/</url>
     <url type="bugtracker">https://github.com/telegramdesktop/tdesktop/issues</url>
-    <url type="help">https://github.com/telegramdesktop/tdesktop/issues</url>
+    <url type="translate">https://translations.telegram.org/</url>
     <screenshots>
       <screenshot type="default">
         <image>https://raw.githubusercontent.com/telegramdesktop/tdesktop/dev/docs/assets/preview.png</image>
@@ -69,8 +69,9 @@
         <content_attribute id="social-audio">intense</content_attribute>
         <content_attribute id="social-location">none</content_attribute>
         <content_attribute id="social-contacts">intense</content_attribute>
-        <content_attribute id="money-purchasing">none</content_attribute>
+        <content_attribute id="money-purchasing">intense</content_attribute>
         <content_attribute id="money-gambling">none</content_attribute>
+        <content_attribute id="money-advertising">moderate</content_attribute>
     </content_rating>
     <launchable type="desktop-id">@TDESKTOP_LAUNCHER_BASENAME@.desktop</launchable>
     <provides>

@@ -33,6 +33,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/toast/toast.h"
 #include "ui/toasts/common_toasts.h"
 #include "ui/image/image_prepare.h"
+#include "ui/painter.h"
 #include "ui/round_rect.h"
 #include "ui/special_buttons.h"
 #include "info/profile/info_profile_values.h" // Info::Profile::Value.
@@ -1319,17 +1320,10 @@ void Panel::chooseJoinAs() {
 	const auto callback = [=](JoinInfo info) {
 		_call->rejoinAs(info);
 	};
-	const auto showBoxCallback = [=](object_ptr<Ui::BoxContent> next) {
-		showBox(std::move(next));
-	};
-	const auto showToastCallback = [=](QString text) {
-		showToast({ text });
-	};
 	_joinAsProcess.start(
 		_peer,
 		context,
-		showBoxCallback,
-		showToastCallback,
+		std::make_shared<Show>(this),
 		callback,
 		_call->joinAs());
 }
@@ -1431,7 +1425,7 @@ void Panel::kickParticipant(not_null<PeerData*> participantPeer) {
 						: tr::lng_group_call_remove_channel)(
 							tr::now,
 							lt_channel,
-							participantPeer->name)
+							participantPeer->name())
 					: (_peer->isBroadcast()
 						? tr::lng_profile_sure_kick_channel
 						: tr::lng_profile_sure_kick)(
@@ -1468,6 +1462,10 @@ void Panel::showBox(
 			std::max(window()->height(), st::groupCallWidth));
 	}
 	_layerBg->showBox(std::move(box), options, animated);
+}
+
+void Panel::hideLayer(anim::type animated) {
+	_layerBg->hideAll(animated);
 }
 
 void Panel::kickParticipantSure(not_null<PeerData*> participantPeer) {
@@ -1665,7 +1663,7 @@ void Panel::setupEmptyRtmp() {
 			(_call->rtmpInfo().url.isEmpty()
 				? tr::lng_group_call_no_stream(
 					lt_group,
-					rpl::single(_peer->name))
+					rpl::single(_peer->name()))
 				: tr::lng_group_call_no_stream_admin()),
 			_controlsBackgroundColor.color());
 		_emptyRtmp->setAttribute(Qt::WA_TransparentForMouseEvents);
@@ -2531,7 +2529,7 @@ void Panel::refreshTitleColors() {
 }
 
 void Panel::paint(QRect clip) {
-	Painter p(widget());
+	auto p = QPainter(widget());
 
 	auto region = QRegion(clip);
 	for (const auto &rect : region) {
@@ -2553,6 +2551,40 @@ not_null<Ui::RpWindow*> Panel::window() const {
 
 not_null<Ui::RpWidget*> Panel::widget() const {
 	return _window.widget();
+}
+
+Show::Show(not_null<Panel*> panel)
+: _panel(base::make_weak(panel.get())) {
+}
+
+Show::~Show() = default;
+
+void Show::showBox(
+		object_ptr<Ui::BoxContent> content,
+		Ui::LayerOptions options) const {
+	if (const auto panel = _panel.get()) {
+		panel->showBox(std::move(content), options);
+	}
+}
+
+void Show::hideLayer() const {
+	if (const auto panel = _panel.get()) {
+		panel->hideLayer();
+	}
+}
+
+not_null<QWidget*> Show::toastParent() const {
+	const auto panel = _panel.get();
+	Assert(panel != nullptr);
+	return panel->widget();
+}
+
+bool Show::valid() const {
+	return !_panel.empty();
+}
+
+Show::operator bool() const {
+	return valid();
 }
 
 } // namespace Calls::Group

@@ -232,7 +232,7 @@ void Controller::createContent() {
 					tr::lng_manage_peer_send_only_members(),
 					rpl::single(QString()),
 					[=] {},
-					st::manageGroupTopButtonWithText,
+					st::peerPermissionsButton,
 					{}
 				));
 				_controls.joinToWrite->toggleOn(
@@ -241,6 +241,10 @@ void Controller::createContent() {
 				) | rpl::start_with_next([=](bool toggled) {
 					_dataSavedValue->joinToWrite = toggled;
 				}, wrap->lifetime());
+			} else {
+				_controls.whoSendWrap->toggle(
+					(_controls.privacy->value() == Privacy::HasUsername),
+					anim::type::instant);
 			}
 			auto joinToWrite = _controls.joinToWrite
 				? _controls.joinToWrite->toggledValue()

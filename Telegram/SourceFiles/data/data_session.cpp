@@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_app_config.h"
 #include "apiwrap.h"
 #include "mainwidget.h"
+#include "api/api_bot.h"
 #include "api/api_text_entities.h"
 #include "core/application.h"
 #include "core/core_settings.h"
@@ -59,12 +60,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_send_action.h"
 #include "data/data_sponsored_messages.h"
 #include "data/data_message_reactions.h"
+#include "data/data_emoji_statuses.h"
 #include "data/data_cloud_themes.h"
 #include "data/data_streaming.h"
 #include "data/data_media_rotation.h"
 #include "data/data_histories.h"
 #include "data/data_peer_values.h"
 #include "data/data_premium_limits.h"
+#include "data/stickers/data_custom_emoji.h"
 #include "base/platform/base_platform_info.h"
 #include "base/unixtime.h"
 #include "base/call_delayed.h"
@@ -104,9 +107,13 @@ void CheckForSwitchInlineButton(not_null<HistoryItem*> item) {
 				for (const auto &button : row) {
 					using ButtonType = HistoryMessageMarkupButton::Type;
 					if (button.type == ButtonType::SwitchInline) {
-						Notify::switchInlineBotButtonReceived(
-							&item->history()->session(),
-							QString::fromUtf8(button.data));
+						const auto session = &item->history()->session();
+						const auto &windows = session->windows();
+						if (!windows.empty()) {
+							Api::SwitchInlineBotButtonReceived(
+								windows.front(),
+								QString::fromUtf8(button.data));
+						}
 						return;
 					}
 				}
@@ -246,7 +253,9 @@ Session::Session(not_null<Main::Session*> session)
 , _stickers(std::make_unique<Stickers>(this))
 , _sponsoredMessages(std::make_unique<SponsoredMessages>(this))
 , _reactions(std::make_unique<Reactions>(this))
-, _notifySettings(std::make_unique<NotifySettings>(this)) {
+, _emojiStatuses(std::make_unique<EmojiStatuses>(this))
+, _notifySettings(std::make_unique<NotifySettings>(this))
+, _customEmojiManager(std::make_unique<CustomEmojiManager>(this)) {
 	_cache->open(_session->local().cacheKey());
 	_bigFileCache->open(_session->local().cacheBigFileKey());
 
@@ -546,6 +555,11 @@ not_null<UserData*> Session::processUser(const MTPUser &data) {
 				result->setAccessHash(accessHash->v);
 			}
 			status = data.vstatus();
+		}
+		if (const auto &status = data.vemoji_status()) {
+			result->setEmojiStatus(*status);
+		} else {
+			result->setEmojiStatus(0);
 		}
 		if (!minimal) {
 			if (const auto botInfoVersion = data.vbot_info_version()) {
@@ -1515,11 +1529,10 @@ rpl::producer<not_null<HistoryItem*>> Session::itemDataChanges() const {
 
 void Session::requestItemTextRefresh(not_null<HistoryItem*> item) {
 	if (const auto i = _views.find(item); i != _views.end()) {
-		for (const auto view : i->second) {
-			if (const auto media = view->media()) {
-				media->parentTextUpdated();
-			}
+		for (const auto &view : i->second) {
+			view->itemTextUpdated();
 		}
+		requestItemResize(item);
 	}
 }
 
@@ -1658,24 +1671,15 @@ void Session::unloadHeavyViewParts(
 	}
 }
 
-void Session::registerShownSpoiler(FullMsgId id) {
-	if (const auto item = message(id)) {
-		_shownSpoilers.emplace(item);
-	}
-}
-
-void Session::unregisterShownSpoiler(FullMsgId id) {
-	if (const auto item = message(id)) {
-		_shownSpoilers.remove(item);
-	}
+void Session::registerShownSpoiler(not_null<ViewElement*> view) {
+	_shownSpoilers.emplace(view);
 }
 
 void Session::hideShownSpoilers() {
-	for (const auto &item : _shownSpoilers) {
-		item->hideSpoilers();
-		requestItemTextRefresh(item);
+	for (const auto &view : base::take(_shownSpoilers)) {
+		view->hideSpoilers();
+		requestViewRepaint(view);
 	}
-	_shownSpoilers = base::flat_set<not_null<HistoryItem*>>();
 }
 
 void Session::removeMegagroupParticipant(
@@ -2142,7 +2146,6 @@ void Session::removeDependencyMessage(not_null<HistoryItem*> item) {
 void Session::unregisterMessage(not_null<HistoryItem*> item) {
 	const auto peerId = item->history()->peer->id;
 	const auto itemId = item->id;
-	_shownSpoilers.remove(item);
 	_itemRemoved.fire_copy(item);
 	session().changes().messageUpdated(
 		item,
@@ -3703,6 +3706,8 @@ void Session::registerItemView(not_null<ViewElement*> view) {
 void Session::unregisterItemView(not_null<ViewElement*> view) {
 	Expects(!_heavyViewParts.contains(view));
 
+	_shownSpoilers.remove(view);
+
 	const auto i = _views.find(view->data());
 	if (i != end(_views)) {
 		auto &list = i->second;
@@ -3898,7 +3903,8 @@ void Session::serviceNotification(
 			MTPint(), // bot_info_version
 			MTPVector<MTPRestrictionReason>(),
 			MTPstring(), // bot_inline_placeholder
-			MTPstring())); // lang_code
+			MTPstring(), // lang_code
+			MTPEmojiStatus()));
 	}
 	const auto history = this->history(PeerData::kServiceNotificationsId);
 	if (!history->folderKnown()) {

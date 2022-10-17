@@ -24,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/menu/menu_item_base.h"
 #include "ui/text/text_utilities.h"
 #include "ui/effects/ripple_animation.h"
+#include "ui/painter.h"
 #include "window/themes/window_theme.h"
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
@@ -250,6 +251,7 @@ void BotAction::validateIcon() {
 			_mask = QImage(
 				size * style::DevicePixelRatio(),
 				QImage::Format_ARGB32_Premultiplied);
+			_mask.setDevicePixelRatio(style::DevicePixelRatio());
 			_mask.fill(Qt::transparent);
 			{
 				auto p = QPainter(&_mask);
@@ -462,6 +464,7 @@ void AttachWebView::request(const WebViewButton &button) {
 		MTP_bytes(button.url),
 		MTP_string(_startCommand),
 		MTP_dataJSON(MTP_bytes(Window::Theme::WebViewParams().json)),
+		MTP_string("tdesktop"),
 		MTPint(), // reply_to_msg_id
 		MTPInputPeer() // send_as
 	)).done([=](const MTPWebViewResult &result) {
@@ -677,7 +680,8 @@ void AttachWebView::requestSimple(const WebViewButton &button) {
 		MTP_flags(Flag::f_theme_params),
 		_bot->inputUser,
 		MTP_bytes(button.url),
-		MTP_dataJSON(MTP_bytes(Window::Theme::WebViewParams().json))
+		MTP_dataJSON(MTP_bytes(Window::Theme::WebViewParams().json)),
+		MTP_string("tdesktop")
 	)).done([=](const MTPSimpleWebViewResult &result) {
 		_requestId = 0;
 		result.match([&](const MTPDsimpleWebViewResultUrl &data) {
@@ -708,6 +712,7 @@ void AttachWebView::requestMenu(
 			MTP_string(url),
 			MTPstring(), // url
 			MTP_dataJSON(MTP_bytes(Window::Theme::WebViewParams().json)),
+			MTP_string("tdesktop"),
 			MTPint(), // reply_to_msg_id
 			MTPInputPeer() // send_as
 		)).done([=](const MTPWebViewResult &result) {
@@ -743,7 +748,7 @@ void AttachWebView::confirmOpen(
 		.text = tr::lng_allow_bot_webview(
 			tr::now,
 			lt_bot_name,
-			Ui::Text::Bold(_bot->name),
+			Ui::Text::Bold(_bot->name()),
 			Ui::Text::RichLangValue),
 		.confirmed = callback,
 		.confirmText = tr::lng_box_ok(),
@@ -778,7 +783,7 @@ void AttachWebView::show(
 		)).done([=](const MTPUpdates &result) {
 			_session->api().applyUpdates(result);
 		}).send();
-		cancel();
+		crl::on_main(this, [=] { cancel(); });
 	});
 	const auto handleLocalUri = [close](QString uri) {
 		const auto local = Core::TryConvertUrlToLocal(uri);
@@ -827,7 +832,7 @@ void AttachWebView::show(
 		&AttachWebViewBot::user);
 	const auto name = (attached != end(_attachBots))
 		? attached->name
-		: _bot->name;
+		: _bot->name();
 	const auto hasSettings = (attached != end(_attachBots))
 		&& !attached->inactive
 		&& attached->hasSettings;
@@ -883,6 +888,7 @@ void AttachWebView::show(
 		.handleInvoice = handleInvoice,
 		.sendData = sendData,
 		.close = close,
+		.phone = _session->user()->phone(),
 		.menuButtons = buttons,
 		.handleMenuButton = handleMenuButton,
 		.themeParams = [] { return Window::Theme::WebViewParams(); },

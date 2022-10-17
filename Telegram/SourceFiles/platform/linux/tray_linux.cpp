@@ -11,7 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/qt_signal_producer.h"
 #include "core/application.h"
 #include "core/sandbox.h"
-#include "platform/linux/specific_linux.h"
+#include "platform/platform_specific.h"
 #include "ui/ui_utility.h"
 #include "ui/widgets/popup_menu.h"
 #include "window/window_controller.h"
@@ -58,7 +58,7 @@ private:
 	const QString _mutePanelTrayIconName;
 	const QString _attentionPanelTrayIconName;
 
-	const int _iconSizes[5];
+	const int _iconSizes[7];
 
 	bool _muted = true;
 	int32 _count = 0;
@@ -73,7 +73,7 @@ IconGraphic::IconGraphic()
 : _panelTrayIconName("telegram-panel")
 , _mutePanelTrayIconName("telegram-mute-panel")
 , _attentionPanelTrayIconName("telegram-attention-panel")
-, _iconSizes{ 16, 22, 24, 32, 48 } {
+, _iconSizes{ 16, 22, 32, 48, 64, 128, 256 } {
 }
 
 IconGraphic::~IconGraphic() = default;
@@ -87,7 +87,7 @@ QString IconGraphic::panelIconName(int counter, bool muted) const {
 }
 
 QString IconGraphic::trayIconName(int counter, bool muted) const {
-	const auto iconName = GetIconName();
+	const auto iconName = base::IconName();
 	const auto panelName = panelIconName(counter, muted);
 
 	if (QIcon::hasThemeIcon(panelName)) {
@@ -211,13 +211,14 @@ QIcon IconGraphic::trayIcon(int counter, bool muted) {
 				: st::trayCounterBg;
 			const auto &fg = st::trayCounterFg;
 			if (iconSize >= 22) {
-				const auto layerSize = (iconSize >= 48)
-					? 32
-					: (iconSize >= 36)
-					? 24
-					: (iconSize >= 32)
-					? 20
-					: 16;
+				const auto layerSize0 = iconSize * 0.66;
+				const auto layerSize1 = int(base::SafeRound(layerSize0));
+				auto layerSize2 = 0.;
+				const auto layerSize = layerSize1 % 2
+					? std::modf(layerSize0, &layerSize2) >= 0.5
+						? layerSize1 + 1
+						: layerSize1 - 1
+					: layerSize1;
 				const auto layer = Window::GenerateCounterLayer({
 					.size = layerSize,
 					.count = counter,
@@ -417,6 +418,10 @@ rpl::producer<> Tray::hideToTrayRequests() const {
 
 rpl::producer<> Tray::iconClicks() const {
 	return _iconClicks.events();
+}
+
+bool Tray::hasIcon() const {
+	return _icon;
 }
 
 rpl::lifetime &Tray::lifetime() {

@@ -15,7 +15,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "window/window_session_controller.h"
 #include "ui/cached_round_corners.h"
-#include "facades.h"
+#include "ui/painter.h"
+#include "api/api_bot.h"
 #include "styles/style_widgets.h"
 #include "styles/style_chat.h"
 
@@ -29,24 +30,24 @@ public:
 
 	int buttonRadius() const override;
 
-	void startPaint(Painter &p, const Ui::ChatStyle *st) const override;
+	void startPaint(QPainter &p, const Ui::ChatStyle *st) const override;
 	const style::TextStyle &textStyle() const override;
 	void repaint(not_null<const HistoryItem*> item) const override;
 
 protected:
 	void paintButtonBg(
-		Painter &p,
+		QPainter &p,
 		const Ui::ChatStyle *st,
 		const QRect &rect,
 		float64 howMuchOver) const override;
 	void paintButtonIcon(
-		Painter &p,
+		QPainter &p,
 		const Ui::ChatStyle *st,
 		const QRect &rect,
 		int outerWidth,
 		HistoryMessageMarkupButton::Type type) const override;
 	void paintButtonLoading(
-		Painter &p,
+		QPainter &p,
 		const Ui::ChatStyle *st,
 		const QRect &rect) const override;
 	int minButtonWidth(HistoryMessageMarkupButton::Type type) const override;
@@ -62,7 +63,7 @@ Style::Style(
 : ReplyKeyboard::Style(st), _parent(parent) {
 }
 
-void Style::startPaint(Painter &p, const Ui::ChatStyle *st) const {
+void Style::startPaint(QPainter &p, const Ui::ChatStyle *st) const {
 	p.setPen(st::botKbColor);
 	p.setFont(st::botKbStyle.font);
 }
@@ -80,7 +81,7 @@ int Style::buttonRadius() const {
 }
 
 void Style::paintButtonBg(
-		Painter &p,
+		QPainter &p,
 		const Ui::ChatStyle *st,
 		const QRect &rect,
 		float64 howMuchOver) const {
@@ -88,7 +89,7 @@ void Style::paintButtonBg(
 }
 
 void Style::paintButtonIcon(
-		Painter &p,
+		QPainter &p,
 		const Ui::ChatStyle *st,
 		const QRect &rect,
 		int outerWidth,
@@ -97,7 +98,7 @@ void Style::paintButtonIcon(
 }
 
 void Style::paintButtonLoading(
-		Painter &p,
+		QPainter &p,
 		const Ui::ChatStyle *st,
 		const QRect &rect) const {
 	// Buttons with loading progress should not appear here.
@@ -169,7 +170,9 @@ void BotKeyboard::leaveEventHook(QEvent *e) {
 	clearSelection();
 }
 
-bool BotKeyboard::moderateKeyActivate(int key) {
+bool BotKeyboard::moderateKeyActivate(
+		int key,
+		Fn<ClickContext(FullMsgId)> context) {
 	const auto &data = _controller->session().data();
 
 	const auto botCommand = [](int key) {
@@ -202,7 +205,11 @@ bool BotKeyboard::moderateKeyActivate(int key) {
 				if (!markup->data.rows.empty()
 					&& index >= 0
 					&& index < int(markup->data.rows.front().size())) {
-					App::activateBotCommand(_controller, item, 0, index);
+					Api::ActivateBotCommand(
+						context(
+							_wasForMsgId).other.value<ClickHandlerContext>(),
+						0,
+						index);
 					return true;
 				}
 			} else if (const auto user = item->history()->peer->asUser()) {

@@ -19,6 +19,7 @@ class ChatData;
 class ChannelData;
 
 enum class ChatRestriction;
+enum class UserRestriction;
 
 namespace Ui {
 class EmptyUserpic;
@@ -34,6 +35,7 @@ namespace Data {
 class Session;
 class GroupCall;
 class CloudImageView;
+struct ReactionId;
 
 int PeerColorIndex(PeerId peerId);
 int PeerColorIndex(BareId bareId);
@@ -98,6 +100,22 @@ struct UnavailableReason {
 bool ApplyBotMenuButton(
 	not_null<BotInfo*> info,
 	const MTPBotMenuButton *button);
+
+enum class AllowedReactionsType {
+	All,
+	Default,
+	Some,
+};
+
+struct AllowedReactions {
+	std::vector<ReactionId> some;
+	AllowedReactionsType type = AllowedReactionsType::Some;
+};
+
+bool operator<(const AllowedReactions &a, const AllowedReactions &b);
+bool operator==(const AllowedReactions &a, const AllowedReactions &b);
+
+[[nodiscard]] AllowedReactions Parse(const MTPChatReactions &value);
 
 } // namespace Data
 
@@ -183,7 +201,7 @@ public:
 		return _notify.change(settings);
 	}
 	bool notifyChange(
-			std::optional<int> muteForSeconds,
+			Data::MuteValue muteForSeconds,
 			std::optional<bool> silentPosts,
 			std::optional<Data::NotifySound> sound) {
 		return _notify.change(muteForSeconds, silentPosts, sound);
@@ -240,9 +258,10 @@ public:
 		return (_lastFullUpdate != 0);
 	}
 
-	[[nodiscard]] const Ui::Text::String &nameText() const;
+	[[nodiscard]] int nameVersion() const;
+	[[nodiscard]] const QString &name() const;
 	[[nodiscard]] const QString &shortName() const;
-	[[nodiscard]] const Ui::Text::String &topBarNameText() const;
+	[[nodiscard]] const QString &topBarNameText() const;
 	[[nodiscard]] QString userName() const;
 
 	[[nodiscard]] const base::flat_set<QString> &nameWords() const {
@@ -408,10 +427,7 @@ public:
 	[[nodiscard]] const QString &themeEmoji() const;
 
 	const PeerId id;
-	QString name;
 	MTPinputPeer input = MTP_inputPeerEmpty();
-
-	int nameVersion = 1;
 
 protected:
 	void updateNameDelayed(
@@ -439,7 +455,6 @@ private:
 	bool _userpicHasVideo = false;
 
 	mutable std::unique_ptr<Ui::EmptyUserpic> _userpicEmpty;
-	Ui::Text::String _nameText;
 
 	Data::PeerNotifySettings _notify;
 
@@ -448,6 +463,9 @@ private:
 	base::flat_set<QChar> _nameFirstLetters;
 
 	crl::time _lastFullUpdate = 0;
+
+	QString _name;
+	int _nameVersion = 1;
 
 	TimeId _ttlPeriod = 0;
 
@@ -468,6 +486,10 @@ namespace Data {
 std::optional<QString> RestrictionError(
 	not_null<PeerData*> peer,
 	ChatRestriction restriction);
+
+std::optional<QString> RestrictionError(
+	not_null<PeerData*> peer,
+	UserRestriction restriction);
 
 void SetTopPinnedMessageId(not_null<PeerData*> peer, MsgId messageId);
 [[nodiscard]] FullMsgId ResolveTopPinnedId(

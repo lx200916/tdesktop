@@ -29,6 +29,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/toasts/common_toasts.h"
 #include "ui/text/text_utilities.h"
 #include "ui/boxes/edit_invite_link.h"
+#include "ui/painter.h"
 #include "boxes/share_box.h"
 #include "history/view/history_view_group_call_bar.h" // GenerateUserpics...
 #include "history/history_message.h" // GetErrorTextForSending.
@@ -809,7 +810,7 @@ void Controller::processRequest(
 					: tr::lng_group_requests_was_added)(
 						tr::now,
 						lt_user,
-						Ui::Text::Bold(user->name),
+						Ui::Text::Bold(user->name()),
 						Ui::Text::WithEntities)
 			});
 		}
@@ -1164,7 +1165,7 @@ object_ptr<Ui::BoxContent> ShareInviteLinkBox(
 			auto text = TextWithEntities();
 			if (result.size() > 1) {
 				text.append(
-					Ui::Text::Bold(error.second->name)
+					Ui::Text::Bold(error.second->name())
 				).append("\n\n");
 			}
 			text.append(error.first);
@@ -1375,7 +1376,7 @@ QString PrepareRequestedRowStatus(TimeId date) {
 	const auto now = QDateTime::currentDateTime();
 	const auto parsed = base::unixtime::parse(date);
 	const auto parsedDate = parsed.date();
-	const auto time = parsed.time().toString(cTimeFormat());
+	const auto time = QLocale().toString(parsed.time(), cTimeFormat());
 	const auto generic = [&] {
 		return tr::lng_group_requests_status_date_time(
 			tr::now,

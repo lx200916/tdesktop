@@ -45,6 +45,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/text/text_options.h"
 #include "ui/text/text_utilities.h"
 #include "ui/cached_round_corners.h"
+#include "ui/painter.h"
 #include "ui/ui_utility.h"
 
 namespace Overview {
@@ -663,8 +664,8 @@ void Voice::paint(Painter &p, const QRect &clip, TextSelection selection, const 
 		}
 	}
 	const auto showPause = updateStatusText();
-	const auto nameVersion = parent()->fromOriginal()->nameVersion;
-	if (nameVersion > _nameVersion) {
+	const auto nameVersion = parent()->fromOriginal()->nameVersion();
+	if (_nameVersion < nameVersion) {
 		updateName();
 	}
 	const auto radial = isRadialAnimation();
@@ -879,18 +880,31 @@ const style::RoundCheckbox &Voice::checkboxStyle() const {
 }
 
 void Voice::updateName() {
-	auto version = 0;
 	if (const auto forwarded = parent()->Get<HistoryMessageForwarded>()) {
 		if (parent()->fromOriginal()->isChannel()) {
-			_name.setText(st::semiboldTextStyle, tr::lng_forwarded_channel(tr::now, lt_channel, parent()->fromOriginal()->name), Ui::NameTextOptions());
+			_name.setText(
+				st::semiboldTextStyle,
+				tr::lng_forwarded_channel(
+					tr::now,
+					lt_channel,
+					parent()->fromOriginal()->name()),
+				Ui::NameTextOptions());
 		} else {
-			_name.setText(st::semiboldTextStyle, tr::lng_forwarded(tr::now, lt_user, parent()->fromOriginal()->name), Ui::NameTextOptions());
+			_name.setText(
+				st::semiboldTextStyle,
+				tr::lng_forwarded(
+					tr::now,
+					lt_user,
+					parent()->fromOriginal()->name()),
+				Ui::NameTextOptions());
 		}
 	} else {
-		_name.setText(st::semiboldTextStyle, parent()->from()->name, Ui::NameTextOptions());
+		_name.setText(
+			st::semiboldTextStyle,
+			parent()->from()->name(),
+			Ui::NameTextOptions());
 	}
-	version = parent()->fromOriginal()->nameVersion;
-	_nameVersion = version;
+	_nameVersion = parent()->fromOriginal()->nameVersion();
 }
 
 int Voice::duration() const {
@@ -1221,7 +1235,7 @@ void Document::paint(Painter &p, const QRect &clip, TextSelection selection, con
 	paintCheckbox(p, { checkLeft, checkTop }, selected, context);
 }
 
-void Document::drawCornerDownload(Painter &p, bool selected, const PaintContext *context) const {
+void Document::drawCornerDownload(QPainter &p, bool selected, const PaintContext *context) const {
 	if (dataLoaded()
 		|| _data->loadedInMediaCache()
 		|| !downloadInCorner()) {
@@ -1516,7 +1530,7 @@ Link::Link(
 	const auto createHandler = [](const QString &url) {
 		return UrlClickHandler::IsSuspicious(url)
 			? std::make_shared<HiddenUrlClickHandler>(url)
-			: std::make_shared<UrlClickHandler>(url);
+			: std::make_shared<UrlClickHandler>(url, false);
 	};
 	_page = media ? media->webpage() : nullptr;
 	if (_page) {
@@ -1974,7 +1988,7 @@ void Gif::validateThumbnail(
 		{
 			.options = (good ? Images::Option() : Images::Option::Blur),
 			.outer = size,
-		});
+		}).toImage();
 }
 
 void Gif::prepareThumbnail(QSize size, QSize frame) {
@@ -2031,13 +2045,13 @@ void Gif::paint(
 			_thumb = pixmap;
 			_thumbGood = true;
 		}
-		p.drawPixmap(r.topLeft(), pixmap);
+		p.drawImage(r.topLeft(), pixmap);
 	} else {
 		prepareThumbnail(r.size(), frame);
 		if (_thumb.isNull()) {
 			p.fillRect(r, st::overviewPhotoBg);
 		} else {
-			p.drawPixmap(r.topLeft(), _thumb);
+			p.drawImage(r.topLeft(), _thumb);
 		}
 	}
 
