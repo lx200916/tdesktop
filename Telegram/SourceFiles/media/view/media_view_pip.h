@@ -76,6 +76,8 @@ public:
 	void setDragDisabled(bool disabled);
 	[[nodiscard]] bool dragging() const;
 
+	void handleWaylandResize(QSize size);
+	void handleScreenChanged(QScreen *screen);
 	void handleMousePress(QPoint position, Qt::MouseButton button);
 	void handleMouseRelease(QPoint position, Qt::MouseButton button);
 	void handleMouseMove(QPoint position);
@@ -103,6 +105,8 @@ private:
 
 	bool _useTransparency = true;
 	bool _dragDisabled = false;
+	bool _inHandleWaylandResize = false;
+	QSize _suggestedWaylandSize;
 	style::margins _padding;
 
 	RectPart _overState = RectPart();

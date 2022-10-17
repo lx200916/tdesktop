@@ -25,7 +25,6 @@ using SharedMediaTypesMask = base::enum_mask<SharedMediaType>;
 } // namespace Storage
 
 namespace Lottie {
-class SinglePlayer;
 struct ColorReplacements;
 } // namespace Lottie
 
@@ -41,6 +40,7 @@ enum class CursorState : char;
 enum class InfoDisplayType : char;
 struct TextState;
 struct StateRequest;
+class StickerPlayer;
 class Element;
 
 using PaintContext = Ui::ChatPaintContext;
@@ -68,11 +68,6 @@ enum class MediaInBubbleState {
 	TextWithEntities text,
 	TimeId duration,
 	const QString &base);
-
-//struct ExternalLottieInfo {
-//	int frame = -1;
-//	int count = -1;
-//};
 
 class Media : public Object {
 public:
@@ -172,20 +167,11 @@ public:
 	}
 	virtual void stickerClearLoopPlayed() {
 	}
-	virtual std::unique_ptr<Lottie::SinglePlayer> stickerTakeLottie(
+	virtual std::unique_ptr<StickerPlayer> stickerTakePlayer(
 		not_null<DocumentData*> data,
 		const Lottie::ColorReplacements *replacements);
 	virtual void checkAnimation() {
 	}
-
-	//virtual void externalLottieProgressing(bool external) {
-	//}
-	//virtual bool externalLottieTill(ExternalLottieInfo info) {
-	//	return true;
-	//}
-	//virtual ExternalLottieInfo externalLottieInfo() const {
-	//	return {};
-	//}
 
 	[[nodiscard]] virtual QSize sizeForGroupingOptimal(int maxWidth) const {
 		Unexpected("Grouping method call.");

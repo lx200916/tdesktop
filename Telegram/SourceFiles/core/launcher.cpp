@@ -9,7 +9,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "platform/platform_launcher.h"
 #include "platform/platform_specific.h"
-#include "platform/linux/linux_desktop_environment.h"
 #include "base/platform/base_platform_info.h"
 #include "base/platform/base_platform_file_utilities.h"
 #include "ui/main_queue_processor.h"
@@ -62,7 +61,9 @@ FilteredCommandLineArguments::FilteredCommandLineArguments(
 #endif // !Q_OS_WIN
 	}
 #elif defined Q_OS_UNIX
-	if (Platform::DesktopEnvironment::IsGnome() && qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM")) {
+	if (QFile::exists(cWorkingDir() + qsl("tdata/nowayland"))
+		&& qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM")) {
+		LOG(("Wayland: Disable on old installations"));
 		pushArgument("-platform");
 		pushArgument("xcb;wayland");
 	}
@@ -529,9 +530,10 @@ void Launcher::processArguments() {
 
 	const auto scaleKey = parseResult.value("-scale", {});
 	if (scaleKey.size() > 0) {
+		using namespace style;
 		const auto value = scaleKey[0].toInt();
-		gConfigScale = ((value < 75) || (value > 300))
-			? style::kScaleAuto
+		gConfigScale = ((value < kScaleMin) || (value > kScaleMax))
+			? kScaleAuto
 			: value;
 	}
 }

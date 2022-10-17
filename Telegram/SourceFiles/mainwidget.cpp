@@ -775,7 +775,7 @@ void MainWidget::sendBotCommand(Bot::SendCommandRequest request) {
 	if (type == Window::SectionActionResult::Fallback) {
 		ui_showPeerHistory(
 			request.peer->id,
-			SectionShow::Way::ClearStack,
+			SectionShow::Way::Forward,
 			ShowAtTheEndMsgId);
 		_history->sendBotCommand(request);
 	}
@@ -783,10 +783,6 @@ void MainWidget::sendBotCommand(Bot::SendCommandRequest request) {
 
 void MainWidget::hideSingleUseKeyboard(PeerData *peer, MsgId replyTo) {
 	_history->hideSingleUseKeyboard(peer, replyTo);
-}
-
-bool MainWidget::insertBotCommand(const QString &cmd) {
-	return _history->insertBotCommand(cmd);
 }
 
 void MainWidget::searchMessages(const QString &query, Dialogs::Key inChat) {
@@ -1314,6 +1310,7 @@ void MainWidget::ui_showPeerHistory(
 		}
 		const auto unavailable = peer->computeUnavailableReason();
 		if (!unavailable.isEmpty()) {
+			Assert(isPrimary());
 			if (params.activation != anim::activation::background) {
 				controller()->show(Ui::MakeInformBox(unavailable));
 			}
@@ -2009,7 +2006,7 @@ void MainWidget::paintEvent(QPaintEvent *e) {
 		checkChatBackground();
 	}
 
-	Painter p(this);
+	auto p = QPainter(this);
 	auto progress = _a_show.value(1.);
 	if (_a_show.animating()) {
 		auto coordUnder = _showBack ? anim::interpolate(-st::slideShift, 0, progress) : anim::interpolate(0, -st::slideShift, progress);

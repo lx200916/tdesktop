@@ -20,6 +20,14 @@ InfoToggle {
 	rippleAreaPadding: pixels;
 }
 
+InfoPeerBadge {
+	verified: icon;
+	premium: icon;
+	premiumFg: color;
+	position: point;
+	sizeTag: int;
+}
+
 infoMediaHeaderFg: windowFg;
 
 infoToggleCheckbox: Checkbox(defaultCheckbox) {
@@ -305,6 +313,14 @@ infoVerifiedCheck: icon {
 	{ "profile_verified_check", profileVerifiedCheckFg }
 };
 infoPremiumStar: icon {{ "profile_premium", profileVerifiedCheckBg }};
+
+infoPeerBadge: InfoPeerBadge {
+	verified: infoVerifiedCheck;
+	premium: infoPremiumStar;
+	premiumFg: profileVerifiedCheckBg;
+	position: infoVerifiedCheckPosition;
+	sizeTag: 1; // Large
+}
 
 infoIconFg: windowBoldFg;
 
@@ -639,7 +655,7 @@ topBarBackward: icon {{ "title_back", menuIconFg }};
 topBarForwardAlpha: 0.6;
 topBarBack: icon {{ "title_back", lightButtonFg }};
 topBarArrowPadding: margins(39px, 8px, 17px, 8px);
-topBarMinPadding: 5px;
+topBarNameRightPadding: 3px;
 topBarButton: RoundButton(defaultLightButton) {
 	width: -18px;
 	padding: margins(0px, 10px, 12px, 10px);

@@ -7,10 +7,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_service.h"
 
+#include "chat_helpers/stickers_gift_box_pack.h"
 #include "lang/lang_keys.h"
 #include "mainwidget.h"
 #include "main/main_session.h"
 #include "main/main_domain.h" // Core::App().domain().activate().
+#include "menu/menu_ttl_validator.h"
 #include "apiwrap.h"
 #include "history/history.h"
 #include "history/view/media/history_view_invoice.h"
@@ -18,7 +20,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_item_components.h"
 #include "history/view/history_view_service_message.h"
 #include "history/view/history_view_item_preview.h"
-#include "history/view/history_view_spoiler_click_handler.h"
 #include "data/data_folder.h"
 #include "data/data_session.h"
 #include "data/data_media_types.h"
@@ -39,7 +40,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/storage_shared_media.h"
 #include "payments/payments_checkout_process.h" // CheckoutProcess::Start.
 #include "ui/text/format_values.h"
-#include "ui/text/text_options.h"
 #include "ui/text/text_utilities.h"
 
 namespace {
@@ -125,7 +125,7 @@ void HistoryService::setMessageByAction(const MTPmessageAction &action) {
 					lt_from,
 					fromLinkText(), // Link 1.
 					lt_user,
-					Ui::Text::Link(u->name, 2), // Link 2.
+					Ui::Text::Link(u->name(), 2), // Link 2.
 					Ui::Text::WithEntities);
 			}
 		} else if (users.isEmpty()) {
@@ -143,7 +143,7 @@ void HistoryService::setMessageByAction(const MTPmessageAction &action) {
 				auto user = history()->owner().user(users[i].v);
 				result.links.push_back(user->createOpenLink());
 
-				auto linkText = Ui::Text::Link(user->name, 2 + i);
+				auto linkText = Ui::Text::Link(user->name(), 2 + i);
 				if (i == 0) {
 					result.text = linkText;
 				} else if (i + 1 == l) {
@@ -253,7 +253,7 @@ void HistoryService::setMessageByAction(const MTPmessageAction &action) {
 				lt_from,
 				fromLinkText(), // Link 1.
 				lt_user,
-				Ui::Text::Link(user->name, 2),  // Link 2.
+				Ui::Text::Link(user->name(), 2),  // Link 2.
 				Ui::Text::WithEntities);
 		}
 		return result;
@@ -364,7 +364,7 @@ void HistoryService::setMessageByAction(const MTPmessageAction &action) {
 		result.text = tr::lng_action_secure_values_sent(
 			tr::now,
 			lt_user,
-			Ui::Text::Link(history()->peer->name, QString()), // Link 1.
+			Ui::Text::Link(history()->peer->name(), QString()), // Link 1.
 			lt_documents,
 			{ .text = documents.join(", ") },
 			Ui::Text::WithEntities);
@@ -412,14 +412,14 @@ void HistoryService::setMessageByAction(const MTPmessageAction &action) {
 					lt_distance,
 					{ .text = distance },
 					lt_user,
-					Ui::Text::Link(toPeer->name, QString()), // Link 1.
+					Ui::Text::Link(toPeer->name(), QString()), // Link 1.
 					Ui::Text::WithEntities);
 			} else if (toId == selfId) {
 				result.links.push_back(fromPeer->createOpenLink());
 				return tr::lng_action_proximity_reached_you(
 					tr::now,
 					lt_from,
-					Ui::Text::Link(fromPeer->name, QString()), // Link 1.
+					Ui::Text::Link(fromPeer->name(), QString()), // Link 1.
 					lt_distance,
 					{ .text = distance },
 					Ui::Text::WithEntities);
@@ -429,11 +429,11 @@ void HistoryService::setMessageByAction(const MTPmessageAction &action) {
 				return tr::lng_action_proximity_reached(
 					tr::now,
 					lt_from,
-					Ui::Text::Link(fromPeer->name, 1), // Link 1.
+					Ui::Text::Link(fromPeer->name(), 1), // Link 1.
 					lt_distance,
 					{ .text = distance },
 					lt_user,
-					Ui::Text::Link(toPeer->name, 2), // Link 2.
+					Ui::Text::Link(toPeer->name(), 2), // Link 2.
 					Ui::Text::WithEntities);
 			}
 		}();
@@ -612,8 +612,29 @@ void HistoryService::setMessageByAction(const MTPmessageAction &action) {
 		return result;
 	};
 
-	const auto messageText = action.match([&](
-		const MTPDmessageActionChatAddUser &data) {
+	auto prepareGiftPremium = [&](
+			const MTPDmessageActionGiftPremium &action) {
+		auto result = PreparedText{};
+		const auto isSelf = (_from->id == _from->session().userPeerId());
+		const auto peer = isSelf ? history()->peer : _from;
+		history()->session().giftBoxStickersPacks().load();
+		const auto amount = action.vamount().v;
+		const auto currency = qs(action.vcurrency());
+		result.links.push_back(peer->createOpenLink());
+		result.text = (isSelf
+			? tr::lng_action_gift_received_me
+			: tr::lng_action_gift_received)(
+				tr::now,
+				lt_user,
+				Ui::Text::Link(peer->name(), 1), // Link 1.
+				lt_cost,
+				{ Ui::FillAmountAndCurrency(amount, currency) },
+				Ui::Text::WithEntities);
+		return result;
+	};
+
+	setServiceText(action.match([&](
+			const MTPDmessageActionChatAddUser &data) {
 		return prepareChatAddUserText(data);
 	}, [&](const MTPDmessageActionChatJoinedByLink &data) {
 		return prepareChatJoinedByLink(data);
@@ -679,6 +700,8 @@ void HistoryService::setMessageByAction(const MTPmessageAction &action) {
 		return prepareChatJoinedByRequest(data);
 	}, [&](const MTPDmessageActionWebViewDataSent &data) {
 		return prepareWebViewDataSent(data);
+	}, [&](const MTPDmessageActionGiftPremium &data) {
+		return prepareGiftPremium(data);
 	}, [&](const MTPDmessageActionWebViewDataSentMe &data) {
 		LOG(("API Error: messageActionWebViewDataSentMe received."));
 		return PreparedText{
@@ -688,9 +711,7 @@ void HistoryService::setMessageByAction(const MTPmessageAction &action) {
 		return PreparedText{
 			tr::lng_message_empty(tr::now, Ui::Text::WithEntities)
 		};
-	});
-
-	setServiceText(messageText);
+	}));
 
 	// Additional information.
 	applyAction(action);
@@ -737,6 +758,11 @@ void HistoryService::applyAction(const MTPMessageAction &action) {
 				channel->mgInfo->joinedMessageFound = true;
 			}
 		}
+	}, [&](const MTPDmessageActionGiftPremium &data) {
+		_media = std::make_unique<Data::MediaGiftBox>(
+			this,
+			_from,
+			data.vmonths().v);
 	}, [](const auto &) {
 	});
 }
@@ -823,7 +849,7 @@ HistoryService::PreparedText HistoryService::prepareInvitedToCallText(
 			lt_from,
 			fromLinkText(), // Link 1.
 			lt_user,
-			Ui::Text::Link(user->name, ++linkIndex), // Link N.
+			Ui::Text::Link(user->name(), ++linkIndex), // Link N.
 			lt_chat,
 			chatText,
 			Ui::Text::WithEntities);
@@ -842,7 +868,7 @@ HistoryService::PreparedText HistoryService::prepareInvitedToCallText(
 			auto user = owner->user(users[i].v);
 			result.links.push_back(user->createOpenLink());
 
-			auto linkText = Ui::Text::Link(user->name, ++linkIndex);
+			auto linkText = Ui::Text::Link(user->name(), ++linkIndex);
 			if (i == 0) {
 				result.text = linkText;
 			} else if (i + 1 == l) {
@@ -918,7 +944,12 @@ HistoryService::PreparedText HistoryService::preparePinnedText() {
 			original = Ui::Text::Wrapped(
 				Ui::Text::Filtered(
 					std::move(original),
-					{ EntityType::Spoiler, EntityType::StrikeOut }),
+					{
+						EntityType::Spoiler,
+						EntityType::StrikeOut,
+						EntityType::Italic,
+						EntityType::CustomEmoji,
+					}),
 				EntityType::CustomUrl,
 				Ui::Text::Link({}, 2).entities.front().data());
 			result.text = tr::lng_action_pinned_message(
@@ -1062,7 +1093,7 @@ HistoryService::PreparedText HistoryService::preparePaymentSentText() {
 					lt_amount,
 					{ .text = payment->amount },
 					lt_user,
-					{ .text = history()->peer->name },
+					{ .text = history()->peer->name() },
 					Ui::Text::WithEntities);
 		}
 	} else {
@@ -1073,7 +1104,7 @@ HistoryService::PreparedText HistoryService::preparePaymentSentText() {
 				lt_amount,
 				{ .text = payment->amount },
 				lt_user,
-				{ .text = history()->peer->name },
+				{ .text = history()->peer->name() },
 				lt_invoice,
 				invoiceTitle,
 				Ui::Text::WithEntities);
@@ -1114,7 +1145,7 @@ HistoryService::PreparedText HistoryService::prepareCallScheduledText(
 				Ui::Text::WithEntities);
 		}
 	};
-	const auto time = scheduled.time().toString(cTimeFormat());
+	const auto time = QLocale().toString(scheduled.time(), cTimeFormat());
 	const auto prepareGeneric = [&] {
 		prepareWithDate(tr::lng_group_call_starts_date(
 			tr::now,
@@ -1183,11 +1214,11 @@ HistoryService::HistoryService(
 	MsgId id,
 	MessageFlags flags,
 	TimeId date,
-	const PreparedText &message,
+	PreparedText &&message,
 	PeerId from,
 	PhotoData *photo)
 : HistoryItem(history, id, flags, date, from) {
-	setServiceText(message);
+	setServiceText(std::move(message));
 	if (photo) {
 		_media = std::make_unique<Data::MediaPhoto>(
 			this,
@@ -1220,7 +1251,7 @@ ItemPreview HistoryService::toPreview(ToPreviewOptions options) const {
 
 TextWithEntities HistoryService::inReplyText() const {
 	auto result = HistoryService::notificationText();
-	const auto &name = author()->name;
+	const auto &name = author()->name();
 	TextUtilities::Trim(result);
 	if (result.text.startsWith(name)) {
 		result = Ui::Text::Mid(result, name.size());
@@ -1236,30 +1267,20 @@ std::unique_ptr<HistoryView::Element> HistoryService::createView(
 }
 
 TextWithEntities HistoryService::fromLinkText() const {
-	return Ui::Text::Link(_from->name, 1);
+	return Ui::Text::Link(_from->name(), 1);
 }
 
 ClickHandlerPtr HistoryService::fromLink() const {
 	return _from->createOpenLink();
 }
 
-void HistoryService::setServiceText(const PreparedText &prepared) {
-	_text.setMarkedText(
-		st::serviceTextStyle,
-		prepared.text,
-		Ui::ItemTextServiceOptions());
-	HistoryView::FillTextWithAnimatedSpoilers(_text);
-	auto linkIndex = 0;
-	for (const auto &link : prepared.links) {
-		// Link indices start with 1.
-		_text.setLink(++linkIndex, link);
+void HistoryService::setServiceText(PreparedText &&prepared) {
+	const auto had = !_text.empty();
+	_text = std::move(prepared.text);
+	_textLinks = std::move(prepared.links);
+	if (had) {
+		history()->owner().requestItemTextRefresh(this);
 	}
-	_textWidth = -1;
-	_textHeight = 0;
-}
-
-void HistoryService::hideSpoilers() {
-	HistoryView::HideSpoilers(_text);
 }
 
 void HistoryService::markMediaAsReadHook() {
@@ -1362,7 +1383,11 @@ void HistoryService::createFromMtp(const MTPDmessage &message) {
 
 void HistoryService::createFromMtp(const MTPDmessageService &message) {
 	const auto type = message.vaction().type();
-	if (type == mtpc_messageActionGameScore) {
+	if (type == mtpc_messageActionSetChatTheme) {
+		setupChatThemeChange();
+	} else if (type == mtpc_messageActionSetMessagesTTL) {
+		setupTTLChange();
+	} else if (type == mtpc_messageActionGameScore) {
 		const auto &data = message.vaction().c_messageActionGameScore();
 		UpdateComponents(HistoryServiceGameScore::Bit());
 		Get<HistoryServiceGameScore>()->score = data.vscore().v;
@@ -1461,6 +1486,10 @@ void HistoryService::createFromMtp(const MTPDmessageService &message) {
 	setMessageByAction(message.vaction());
 }
 
+const std::vector<ClickHandlerPtr> &HistoryService::customTextLinks() const {
+	return _textLinks;
+}
+
 void HistoryService::applyEdition(const MTPDmessageService &message) {
 	clearDependency();
 	UpdateComponents(0);
@@ -1480,8 +1509,6 @@ void HistoryService::removeMedia() {
 	if (!_media) return;
 
 	_media.reset();
-	_textWidth = -1;
-	_textHeight = 0;
 	history()->owner().requestItemResize(this);
 }
 
@@ -1507,7 +1534,7 @@ void HistoryService::updateDependentText() {
 }
 
 void HistoryService::updateText(PreparedText &&text) {
-	setServiceText(text);
+	setServiceText(std::move(text));
 	history()->owner().requestItemResize(this);
 	invalidateChatListEntry();
 	history()->owner().updateDependentMessages(this);
@@ -1523,6 +1550,42 @@ void HistoryService::clearDependency() {
 			dependent->msgId = 0;
 		}
 	}
+}
+
+void HistoryService::setupChatThemeChange() {
+	if (const auto user = history()->peer->asUser()) {
+		auto link = std::make_shared<LambdaClickHandler>([=](
+				ClickContext context) {
+			const auto my = context.other.value<ClickHandlerContext>();
+			if (const auto controller = my.sessionWindow.get()) {
+				controller->toggleChooseChatTheme(user);
+			}
+		});
+
+		UpdateComponents(HistoryServiceChatThemeChange::Bit());
+		Get<HistoryServiceChatThemeChange>()->link = std::move(link);
+	} else {
+		RemoveComponents(HistoryServiceChatThemeChange::Bit());
+	}
+}
+
+void HistoryService::setupTTLChange() {
+	const auto peer = history()->peer;
+	auto link = std::make_shared<LambdaClickHandler>([=](
+			ClickContext context) {
+		const auto my = context.other.value<ClickHandlerContext>();
+		if (const auto controller = my.sessionWindow.get()) {
+			const auto validator = TTLMenu::TTLValidator(
+				std::make_shared<Window::Show>(controller),
+				peer);
+			if (validator.can()) {
+				validator.showBox();
+			}
+		}
+	});
+
+	UpdateComponents(HistoryServiceTTLChange::Bit());
+	Get<HistoryServiceTTLChange>()->link = std::move(link);
 }
 
 void HistoryService::dependencyItemRemoved(HistoryItem *dependency) {
@@ -1547,7 +1610,7 @@ HistoryService::PreparedText GenerateJoinedText(
 			: tr::lng_action_add_you)(
 				tr::now,
 				lt_from,
-				Ui::Text::Link(inviter->name, QString()),
+				Ui::Text::Link(inviter->name(), QString()),
 				Ui::Text::WithEntities);
 		return result;
 	} else if (history->peer->isMegagroup()) {
@@ -1562,7 +1625,7 @@ HistoryService::PreparedText GenerateJoinedText(
 		result.text = tr::lng_action_user_joined(
 			tr::now,
 			lt_from,
-			Ui::Text::Link(self->name, QString()),
+			Ui::Text::Link(self->name(), QString()),
 			Ui::Text::WithEntities);
 		return result;
 	}

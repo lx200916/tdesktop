@@ -255,7 +255,7 @@ private:
 	mutable std::shared_ptr<Data::DocumentMedia> _dataMedia;
 	StatusText _status;
 
-	QPixmap _thumb;
+	QImage _thumb;
 	bool _thumbGood = false;
 
 };
@@ -369,7 +369,7 @@ protected:
 
 private:
 	[[nodiscard]] bool downloadInCorner() const;
-	void drawCornerDownload(Painter &p, bool selected, const PaintContext *context) const;
+	void drawCornerDownload(QPainter &p, bool selected, const PaintContext *context) const;
 	[[nodiscard]] TextState cornerDownloadTextState(
 		QPoint point,
 		StateRequest request) const;
@@ -438,11 +438,11 @@ private:
 	bool _thumbnailBlurred = true;
 
 	struct LinkEntry {
-		LinkEntry() : width(0) {
-		}
+		LinkEntry() = default;
 		LinkEntry(const QString &url, const QString &text);
+
 		QString text;
-		int32 width;
+		int width = 0;
 		std::shared_ptr<TextClickHandler> lnk;
 	};
 	QVector<LinkEntry> _links;

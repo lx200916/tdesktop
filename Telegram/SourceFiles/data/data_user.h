@@ -51,6 +51,8 @@ enum class UserDataFlag {
 	DiscardMinPhoto = (1 << 12),
 	Self = (1 << 13),
 	Premium = (1 << 14),
+	CanReceiveGifts = (1 << 15),
+	VoiceMessagesForbidden = (1 << 16),
 };
 inline constexpr bool is_flag_type(UserDataFlag) { return true; };
 using UserDataFlags = base::flags<UserDataFlag>;
@@ -62,12 +64,16 @@ public:
 
 	UserData(not_null<Data::Session*> owner, PeerId id);
 	void setPhoto(const MTPUserProfilePhoto &photo);
+	void setEmojiStatus(const MTPEmojiStatus &status);
 
 	void setName(
 		const QString &newFirstName,
 		const QString &newLastName,
 		const QString &newPhoneName,
 		const QString &newUsername);
+
+	void setEmojiStatus(DocumentId emojiStatusId, TimeId until = 0);
+	[[nodiscard]] DocumentId emojiStatusId() const;
 
 	void setPhone(const QString &newPhone);
 	void setBotInfoVersion(int version);
@@ -106,6 +112,9 @@ public:
 	[[nodiscard]] bool canShareThisContact() const;
 	[[nodiscard]] bool canAddContact() const;
 
+	[[nodiscard]] bool canReceiveGifts() const;
+	[[nodiscard]] bool canReceiveVoices() const;
+
 	// In Data::Session::processUsers() we check only that.
 	// When actually trying to share contact we perform
 	// a full check by canShareThisContact() call.
@@ -118,7 +127,6 @@ public:
 	QString username;
 	[[nodiscard]] const QString &phone() const;
 	QString nameOrPhone;
-	Ui::Text::String phoneText;
 	TimeId onlineTill = 0;
 
 	enum class ContactStatus : char {
@@ -163,6 +171,8 @@ private:
 	uint64 _accessHash = 0;
 	static constexpr auto kInaccessibleAccessHashOld
 		= 0xFFFFFFFFFFFFFFFFULL;
+
+	DocumentId _emojiStatusId = 0;
 
 };
 

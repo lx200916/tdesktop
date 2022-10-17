@@ -10,11 +10,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/effects/ripple_animation.h"
 #include "ui/text/text_options.h"
 #include "ui/text/text_utilities.h"
+#include "ui/painter.h"
 #include "dialogs/dialogs_entry.h"
 #include "dialogs/ui/dialogs_video_userpic.h"
 #include "data/data_folder.h"
 #include "data/data_peer_values.h"
 #include "history/history.h"
+#include "history/history_item.h"
 #include "lang/lang_keys.h"
 #include "mainwidget.h"
 #include "styles/style_dialogs.h"
@@ -41,7 +43,7 @@ namespace {
 		list.size() - (throwAwayLastName ? 1 : 0)
 	);
 	const auto wrapName = [](not_null<History*> history) {
-		const auto name = history->peer->name;
+		const auto name = history->peer->name();
 		return TextWithEntities{
 			.text = name,
 			.entities = (history->unreadCount() > 0)
@@ -106,7 +108,7 @@ void BasicRow::stopLastRipple() {
 }
 
 void BasicRow::paintRipple(
-		Painter &p,
+		QPainter &p,
 		int x,
 		int y,
 		int outerWidth,
@@ -338,9 +340,24 @@ void Row::paintUserpic(
 	p.setOpacity(1.);
 }
 
-FakeRow::FakeRow(Key searchInChat, not_null<HistoryItem*> item)
+FakeRow::FakeRow(
+	Key searchInChat,
+	not_null<HistoryItem*> item,
+	Fn<void()> repaint)
 : _searchInChat(searchInChat)
-, _item(item) {
+, _item(item)
+, _repaint(std::move(repaint)) {
+}
+
+const Ui::Text::String &FakeRow::name() const {
+	if (_name.isEmpty()) {
+		const auto from = _searchInChat
+			? _item->displayFrom()
+			: nullptr;
+		const auto peer = from ? from : _item->history()->peer.get();
+		_name.setText(st::msgNameStyle, peer->name(), Ui::NameTextOptions());
+	}
+	return _name;
 }
 
 } // namespace Dialogs

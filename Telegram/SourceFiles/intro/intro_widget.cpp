@@ -460,13 +460,8 @@ void Widget::showTerms() {
 				Ui::Text::WithEntities),
 			st::introTermsLabel);
 		_terms.create(this, std::move(entity));
-		_terms->entity()->setClickHandlerFilter([=](
-				const ClickHandlerPtr &handler,
-				Qt::MouseButton button) {
-			if (button == Qt::LeftButton) {
-				showTerms(nullptr);
-			}
-			return false;
+		_terms->entity()->overrideLinkClickHandler([=] {
+			showTerms(nullptr);
 		});
 		updateControlsGeometry();
 		_terms->hide(anim::type::instant);
@@ -492,7 +487,9 @@ void Widget::resetAccount() {
 			return;
 		}
 		_resetRequest = _api->request(MTPaccount_DeleteAccount(
-			MTP_string("Forgot password")
+			MTP_flags(0),
+			MTP_string("Forgot password"),
+			MTPInputCheckPasswordSRP()
 		)).done([=] {
 			_resetRequest = 0;
 

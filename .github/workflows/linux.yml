@@ -80,7 +80,7 @@ jobs:
       - name: First set up.
         run: |
           gcc --version
-          ln -s $LibrariesPath Libraries
+          ln -s /usr/src/Libraries
 
       - name: Telegram Desktop build.
         run: |
@@ -100,7 +100,6 @@ jobs:
           -D CMAKE_CXX_FLAGS="-Werror" \
           -D CMAKE_EXE_LINKER_FLAGS="-s" \
           -D TDESKTOP_API_TEST=ON \
-          -D DESKTOP_APP_USE_PACKAGED=OFF \
           -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF \
           $DEFINE
 

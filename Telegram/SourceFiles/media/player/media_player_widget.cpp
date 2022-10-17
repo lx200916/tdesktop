@@ -730,7 +730,7 @@ void Widget::updateControlsWrapVisibility() {
 }
 
 void Widget::paintEvent(QPaintEvent *e) {
-	Painter p(this);
+	auto p = QPainter(this);
 	auto fill = e->rect().intersected(QRect(0, 0, width(), st::mediaPlayerHeight));
 	if (!fill.isEmpty()) {
 		p.fillRect(fill, st::mediaPlayerBg);
@@ -1014,11 +1014,13 @@ void Widget::handleSongChange() {
 	TextWithEntities textWithEntities;
 	if (document->isVoiceMessage() || document->isVideoMessage()) {
 		if (const auto item = document->owner().message(current.contextId())) {
-			const auto name = item->fromOriginal()->name;
+			const auto name = (!item->out() || item->isPost())
+				? item->fromOriginal()->name()
+				: tr::lng_from_you(tr::now);
 			const auto date = [item] {
 				const auto parsed = ItemDateTime(item);
 				const auto date = parsed.date();
-				const auto time = parsed.time().toString(cTimeFormat());
+				const auto time = QLocale().toString(parsed.time(), cTimeFormat());
 				const auto today = QDateTime::currentDateTime().date();
 				if (date == today) {
 					return tr::lng_player_message_today(

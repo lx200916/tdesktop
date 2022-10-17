@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/observer.h"
 #include "base/weak_ptr.h"
 #include "base/timer.h"
+#include "boxes/gift_premium_box.h" // GiftPremiumValidator.
 #include "data/data_chat_participant_status.h"
 #include "dialogs/dialogs_key.h"
 #include "ui/layers/layer_widget.h"
@@ -31,6 +32,7 @@ enum class WindowLayout;
 namespace ChatHelpers {
 class TabbedSelector;
 class EmojiInteractions;
+struct FileChosen;
 } // namespace ChatHelpers
 
 namespace Main {
@@ -83,7 +85,7 @@ class FiltersMenu;
 enum class GifPauseReason {
 	Any           = 0,
 	InlineResults = (1 << 0),
-	SavedGifs     = (1 << 1),
+	TabbedPanel   = (1 << 1),
 	Layer         = (1 << 2),
 	RoundPlaying  = (1 << 3),
 	MediaPreview  = (1 << 4),
@@ -316,6 +318,10 @@ public:
 	void setConnectingBottomSkip(int skip);
 	rpl::producer<int> connectingBottomSkipValue() const;
 
+	using FileChosen = ChatHelpers::FileChosen;
+	void stickerOrEmojiChosen(FileChosen chosen);
+	[[nodiscard]] rpl::producer<FileChosen> stickerOrEmojiChosen() const;
+
 	QPointer<Ui::BoxContent> show(
 		object_ptr<Ui::BoxContent> content,
 		Ui::LayerOptions options = Ui::LayerOption::KeepOther,
@@ -354,6 +360,7 @@ public:
 		Dialogs::RowDescriptor from = {}) const;
 
 	void showEditPeerBox(PeerData *peer);
+	void showGiftPremiumBox(UserData *user);
 
 	void enableGifPauseReason(GifPauseReason reason);
 	void disableGifPauseReason(GifPauseReason reason);
@@ -380,11 +387,12 @@ public:
 	void resizeForThirdSection();
 	void closeThirdSection();
 
+	[[nodiscard]] bool canShowSeparateWindow(not_null<PeerData*> peer) const;
 	void showPeer(not_null<PeerData*> peer, MsgId msgId = ShowAtUnreadMsgId);
 
 	void startOrJoinGroupCall(
 		not_null<PeerData*> peer,
-		const Calls::StartGroupCallArgs &args);
+		Calls::StartGroupCallArgs args);
 
 	void showSection(
 		std::shared_ptr<SectionMemento> memento,
@@ -582,6 +590,8 @@ private:
 
 	rpl::variable<int> _connectingBottomSkip;
 
+	rpl::event_stream<ChatHelpers::FileChosen> _stickerOrEmojiChosen;
+
 	PeerData *_showEditPeer = nullptr;
 	rpl::variable<Data::Folder*> _openedFolder;
 
@@ -598,6 +608,8 @@ private:
 	using ReactionIconFactory = HistoryView::Reactions::CachedIconFactory;
 	std::unique_ptr<ReactionIconFactory> _cachedReactionIconFactory;
 
+	GiftPremiumValidator _giftPremiumValidator;
+
 	QString _premiumRef;
 
 	rpl::lifetime _lifetime;
@@ -605,6 +617,13 @@ private:
 };
 
 void ActivateWindow(not_null<SessionController*> controller);
+
+[[nodiscard]] bool IsPaused(
+	not_null<SessionController*> controller,
+	GifPauseReason level);
+[[nodiscard]] Fn<bool()> PausedIn(
+	not_null<SessionController*> controller,
+	GifPauseReason level);
 
 class Show : public Ui::Show {
 public:

@@ -42,9 +42,15 @@ struct RippleAnimation;
 namespace Data {
 struct MessagePosition;
 struct RecentReaction;
+struct ReactionId;
 class Media;
+struct MessageReaction;
 class MessageReactions;
 } // namespace Data
+
+namespace Main {
+class Session;
+} // namespace Main
 
 namespace Window {
 class SessionController;
@@ -63,7 +69,7 @@ enum class Context : char;
 class ElementDelegate;
 } // namespace HistoryView
 
-struct HiddenSenderInfo;
+class HiddenSenderInfo;
 class History;
 
 [[nodiscard]] MessageFlags FlagsFromMTP(
@@ -189,9 +195,6 @@ public:
 	[[nodiscard]] bool isGroupMigrate() const {
 		return isGroupEssential() && isEmpty();
 	}
-	[[nodiscard]] bool isIsolatedEmoji() const {
-		return _flags & MessageFlag::IsolatedEmoji;
-	}
 	[[nodiscard]] bool hasViews() const {
 		return _flags & MessageFlag::HasViews;
 	}
@@ -228,6 +231,7 @@ public:
 	[[nodiscard]] virtual bool externalReply() const {
 		return false;
 	}
+	[[nodiscard]] bool hasExtendedMediaPreview() const;
 
 	[[nodiscard]] virtual MsgId repliesInboxReadTill() const {
 		return MsgId(0);
@@ -270,6 +274,8 @@ public:
 	}
 	virtual void applyEdition(const MTPDmessageService &message) {
 	}
+	virtual void applyEdition(const MTPMessageExtendedMedia &media) {
+	}
 	void applyEditionToHistoryCleared();
 	virtual void updateSentContent(
 		const TextWithEntities &textWithEntities,
@@ -308,7 +314,6 @@ public:
 	[[nodiscard]] virtual ItemPreview toPreview(
 		ToPreviewOptions options) const;
 	[[nodiscard]] virtual TextWithEntities inReplyText() const;
-	[[nodiscard]] virtual Ui::Text::IsolatedEmoji isolatedEmoji() const;
 	[[nodiscard]] virtual TextWithEntities originalText() const {
 		return TextWithEntities();
 	}
@@ -316,6 +321,8 @@ public:
 	-> TextWithEntities {
 		return TextWithEntities();
 	}
+	[[nodiscard]] virtual auto customTextLinks() const
+		-> const std::vector<ClickHandlerPtr> &;
 	[[nodiscard]] virtual TextForMimeData clipboardText() const {
 		return TextForMimeData();
 	}
@@ -341,11 +348,9 @@ public:
 	virtual void setRealId(MsgId newId);
 	virtual void incrementReplyToTopCounter() {
 	}
-	virtual void hideSpoilers() {
-	}
 
 	[[nodiscard]] bool emptyText() const {
-		return _text.isEmpty();
+		return _text.empty();
 	}
 
 	[[nodiscard]] bool canPin() const;
@@ -362,18 +367,25 @@ public:
 	[[nodiscard]] bool suggestDeleteAllReport() const;
 
 	[[nodiscard]] bool canReact() const;
-	void addReaction(const QString &reaction);
-	void toggleReaction(const QString &reaction);
+	enum class ReactionSource {
+		Selector,
+		Quick,
+		Existing,
+	};
+	void toggleReaction(
+		const Data::ReactionId &reaction,
+		ReactionSource source);
 	void updateReactions(const MTPMessageReactions *reactions);
 	void updateReactionsUnknown();
-	[[nodiscard]] const base::flat_map<QString, int> &reactions() const;
+	[[nodiscard]] auto reactions() const
+		-> const std::vector<Data::MessageReaction> &;
 	[[nodiscard]] auto recentReactions() const
-	-> const base::flat_map<
-		QString,
-		std::vector<Data::RecentReaction>> &;
+		-> const base::flat_map<
+			Data::ReactionId,
+			std::vector<Data::RecentReaction>> &;
 	[[nodiscard]] bool canViewReactions() const;
-	[[nodiscard]] QString chosenReaction() const;
-	[[nodiscard]] QString lookupUnreadReaction(
+	[[nodiscard]] std::vector<Data::ReactionId> chosenReactions() const;
+	[[nodiscard]] Data::ReactionId lookupUnreadReaction(
 		not_null<UserData*> from) const;
 	[[nodiscard]] crl::time lastReactionsRefreshTime() const;
 
@@ -389,10 +401,8 @@ public:
 	[[nodiscard]] Data::Media *media() const {
 		return _media.get();
 	}
+	[[nodiscard]] bool computeDropForwardedInfo() const;
 	virtual void setText(const TextWithEntities &textWithEntities) {
-	}
-	[[nodiscard]] virtual bool textHasLinks() const {
-		return false;
 	}
 
 	[[nodiscard]] MsgId replyToId() const;
@@ -431,6 +441,7 @@ public:
 
 	void updateDate(TimeId newDate);
 	[[nodiscard]] bool canUpdateDate() const;
+	void customEmojiRepaint();
 
 	[[nodiscard]] TimeId ttlDestroyAt() const {
 		return _ttlDestroyAt;
@@ -470,9 +481,7 @@ protected:
 	void applyTTL(const MTPDmessageService &data);
 	void applyTTL(TimeId destroyAt);
 
-	Ui::Text::String _text = { st::msgMinWidth };
-	int _textWidth = -1;
-	int _textHeight = 0;
+	TextWithEntities _text;
 
 	struct SavedMediaData {
 		TextWithEntities text;

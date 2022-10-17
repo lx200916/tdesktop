@@ -70,19 +70,20 @@ struct HistoryMessageEdited : public RuntimeComponent<HistoryMessageEdited, Hist
 	TimeId date = 0;
 };
 
-struct HiddenSenderInfo {
+class HiddenSenderInfo {
+public:
 	HiddenSenderInfo(const QString &name, bool external);
 
 	QString name;
 	QString firstName;
 	QString lastName;
 	PeerId colorPeerId = 0;
-	Ui::Text::String nameText;
 	Ui::EmptyUserpic emptyUserpic;
 	mutable Data::CloudImage customUserpic;
 
 	[[nodiscard]] static ClickHandlerPtr ForwardClickHandler();
 
+	[[nodiscard]] const Ui::Text::String &nameText() const;
 	[[nodiscard]] bool paintCustomUserpic(
 		Painter &p,
 		int x,
@@ -96,6 +97,10 @@ struct HiddenSenderInfo {
 	inline bool operator!=(const HiddenSenderInfo &other) const {
 		return !(*this == other);
 	}
+
+private:
+	mutable Ui::Text::String _nameText;
+
 };
 
 struct HistoryMessageForwarded : public RuntimeComponent<HistoryMessageForwarded, HistoryItem> {
@@ -219,6 +224,8 @@ struct HistoryMessageReplyMarkup
 	void createForwarded(const HistoryMessageReplyMarkup &original);
 	void updateData(HistoryMessageMarkupData &&markup);
 
+	[[nodiscard]] bool hiddenBy(Data::Media *media) const;
+
 	HistoryMessageMarkupData data;
 	std::unique_ptr<ReplyKeyboard> inlineKeyboard;
 
@@ -281,7 +288,7 @@ public:
 		}
 
 		virtual void startPaint(
-			Painter &p,
+			QPainter &p,
 			const Ui::ChatStyle *st) const = 0;
 		virtual const style::TextStyle &textStyle() const = 0;
 
@@ -296,18 +303,18 @@ public:
 
 	protected:
 		virtual void paintButtonBg(
-			Painter &p,
+			QPainter &p,
 			const Ui::ChatStyle *st,
 			const QRect &rect,
 			float64 howMuchOver) const = 0;
 		virtual void paintButtonIcon(
-			Painter &p,
+			QPainter &p,
 			const Ui::ChatStyle *st,
 			const QRect &rect,
 			int outerWidth,
 			HistoryMessageMarkupButton::Type type) const = 0;
 		virtual void paintButtonLoading(
-			Painter &p,
+			QPainter &p,
 			const Ui::ChatStyle *st,
 			const QRect &rect) const = 0;
 		virtual int minButtonWidth(

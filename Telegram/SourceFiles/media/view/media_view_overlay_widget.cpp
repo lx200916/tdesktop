@@ -27,6 +27,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/toasts/common_toasts.h"
 #include "ui/text/format_values.h"
 #include "ui/item_text_options.h"
+#include "ui/painter.h"
 #include "ui/ui_utility.h"
 #include "ui/cached_round_corners.h"
 #include "ui/gl/gl_surface.h"
@@ -2233,12 +2234,14 @@ void OverlayWidget::refreshFromLabel() {
 			_fromName = info->name;
 		} else {
 			Assert(_from != nullptr);
-			const auto from = _from->migrateTo() ? _from->migrateTo() : _from;
-			_fromName = from->name;
+			const auto from = _from->migrateTo()
+				? _from->migrateTo()
+				: _from;
+			_fromName = from->name();
 		}
 	} else {
 		_from = _user;
-		_fromName = _user ? _user->name : QString();
+		_fromName = _user ? _user->name() : QString();
 	}
 }
 
@@ -2264,8 +2267,15 @@ void OverlayWidget::refreshCaption() {
 	const auto base = duration
 		? TimestampLinkBase(_document, _message->fullId())
 		: QString();
+	const auto captionRepaint = [=] {
+		if (_fullScreenVideo || !_controlsOpacity.current()) {
+			return;
+		}
+		update(captionGeometry());
+	};
 	const auto context = Core::MarkedTextContext{
-		.session = &_message->history()->session()
+		.session = &_message->history()->session(),
+		.customEmojiRepaint = captionRepaint,
 	};
 	_caption.setMarkedText(
 		st::mediaviewCaptionStyle,
@@ -2274,6 +2284,12 @@ void OverlayWidget::refreshCaption() {
 			: AddTimestampLinks(caption, duration, base)),
 		Ui::ItemTextOptions(_message),
 		context);
+	if (_caption.hasSpoilers()) {
+		const auto weak = Ui::MakeWeak(widget());
+		_caption.setSpoilerLinkFilter([=](const ClickContext &context) {
+			return (weak != nullptr);
+		});
+	}
 }
 
 void OverlayWidget::refreshGroupThumbs() {
@@ -3708,9 +3724,13 @@ void OverlayWidget::paintSaveMsgContent(
 	st::mediaviewSaveMsgCheck.paint(p, outer.topLeft() + st::mediaviewSaveMsgCheckPos, width());
 
 	p.setPen(st::mediaviewSaveMsgFg);
-	p.setTextPalette(st::mediaviewTextPalette);
-	_saveMsgText.draw(p, outer.x() + st::mediaviewSaveMsgPadding.left(), outer.y() + st::mediaviewSaveMsgPadding.top(), outer.width() - st::mediaviewSaveMsgPadding.left() - st::mediaviewSaveMsgPadding.right());
-	p.restoreTextPalette();
+	_saveMsgText.draw(p, {
+		.position = QPoint(
+			outer.x() + st::mediaviewSaveMsgPadding.left(),
+			outer.y() + st::mediaviewSaveMsgPadding.top()),
+		.availableWidth = outer.width() - st::mediaviewSaveMsgPadding.left() - st::mediaviewSaveMsgPadding.right(),
+		.palette = &st::mediaviewTextPalette,
+	});
 	p.setOpacity(1);
 }
 
@@ -3849,10 +3869,14 @@ void OverlayWidget::paintCaptionContent(
 	p.setPen(Qt::NoPen);
 	p.drawRoundedRect(outer, st::mediaviewCaptionRadius, st::mediaviewCaptionRadius);
 	if (inner.intersects(clip)) {
-		p.setTextPalette(st::mediaviewTextPalette);
 		p.setPen(st::mediaviewCaptionFg);
-		_caption.drawElided(p, inner.x(), inner.y(), inner.width(), inner.height() / st::mediaviewCaptionStyle.font->height);
-		p.restoreTextPalette();
+		_caption.draw(p, {
+			.position = inner.topLeft(),
+			.availableWidth = inner.width(),
+			.palette = &st::mediaviewTextPalette,
+			.spoiler = Ui::Text::DefaultSpoilerCache(),
+			.elisionLines = inner.height() / st::mediaviewCaptionStyle.font->height,
+		});
 	}
 }
 

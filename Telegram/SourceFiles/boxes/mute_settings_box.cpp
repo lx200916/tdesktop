@@ -46,7 +46,7 @@ void MuteSettingsBox::prepare() {
 	icon->moveToLeft(st::boxPadding.left(), y);
 
 	object_ptr<Ui::FlatLabel> title(this, st::muteChatTitle);
-	title->setText(_peer->name);
+	title->setText(_peer->name());
 	title->moveToLeft(
 		st::boxPadding.left() + st::muteChatTitleLeft,
 		y + (icon->height() / 2) - (title->height() / 2));
@@ -76,7 +76,9 @@ void MuteSettingsBox::prepare() {
 
 	_save = [=] {
 		const auto muteForSeconds = group->value() * 3600;
-		_peer->owner().notifySettings().update(_peer, muteForSeconds);
+		_peer->owner().notifySettings().update(
+			_peer,
+			{ .period = muteForSeconds });
 		closeBox();
 	};
 	addButton(tr::lng_box_ok(), _save);

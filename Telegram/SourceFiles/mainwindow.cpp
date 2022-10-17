@@ -158,6 +158,10 @@ void MainWindow::finishFirstShow() {
 	}, lifetime());
 
 	setAttribute(Qt::WA_NoSystemBackground);
+
+	if (!_passcodeLock && _main) {
+		_main->activate();
+	}
 }
 
 void MainWindow::clearWidgetsHook() {
@@ -280,6 +284,7 @@ void MainWindow::setupMain(MsgId singlePeerShowAtMsgId) {
 	clearWidgets();
 	_main = std::move(created);
 	if (const auto peer = singlePeer()) {
+		updateControlsGeometry();
 		_main->controller()->showPeerHistory(
 			peer,
 			Window::SectionShow::Way::ClearStack,

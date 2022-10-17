@@ -37,6 +37,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/empty_userpic.h"
 #include "ui/text/text_options.h"
 #include "ui/toasts/common_toasts.h"
+#include "ui/painter.h"
 #include "ui/ui_utility.h"
 #include "history/history.h"
 #include "history/view/history_view_element.h"
@@ -109,6 +110,39 @@ bool ApplyBotMenuButton(
 	return changed;
 }
 
+bool operator<(
+		const AllowedReactions &a,
+		const AllowedReactions &b) {
+	return (a.type < b.type) || ((a.type == b.type) && (a.some < b.some));
+}
+
+bool operator==(
+		const AllowedReactions &a,
+		const AllowedReactions &b) {
+	return (a.type == b.type) && (a.some == b.some);
+}
+
+AllowedReactions Parse(const MTPChatReactions &value) {
+	return value.match([&](const MTPDchatReactionsNone &) {
+		return AllowedReactions();
+	}, [&](const MTPDchatReactionsAll &data) {
+		return AllowedReactions{
+			.type = (data.is_allow_custom()
+				? AllowedReactionsType::All
+				: AllowedReactionsType::Default),
+		};
+	}, [&](const MTPDchatReactionsSome &data) {
+		return AllowedReactions{
+			.some = ranges::views::all(
+				data.vreactions().v
+			) | ranges::views::transform(
+				ReactionFromMTP
+			) | ranges::to_vector,
+			.type = AllowedReactionsType::Some,
+		};
+	});
+}
+
 } // namespace Data
 
 PeerClickHandler::PeerClickHandler(not_null<PeerData*> peer)
@@ -142,7 +176,6 @@ void PeerClickHandler::onClick(ClickContext context) const {
 PeerData::PeerData(not_null<Data::Session*> owner, PeerId id)
 : id(id)
 , _owner(owner) {
-	_nameText.setText(st::msgNameStyle, QString(), Ui::NameTextOptions());
 }
 
 Data::Session &PeerData::owner() const {
@@ -161,7 +194,7 @@ void PeerData::updateNameDelayed(
 		const QString &newName,
 		const QString &newNameOrPhone,
 		const QString &newUsername) {
-	if (name == newName && nameVersion > 1) {
+	if (_name == newName && _nameVersion > 1) {
 		if (isUser()) {
 			if (asUser()->nameOrPhone == newNameOrPhone
 				&& asUser()->username == newUsername) {
@@ -175,13 +208,12 @@ void PeerData::updateNameDelayed(
 			return;
 		}
 	}
-	name = newName;
-	_nameText.setText(st::msgNameStyle, name, Ui::NameTextOptions());
+	_name = newName;
 	_userpicEmpty = nullptr;
 
 	auto flags = UpdateFlag::None | UpdateFlag::None;
 	auto oldFirstLetters = base::flat_set<QChar>();
-	const auto nameUpdated = (nameVersion++ > 1);
+	const auto nameUpdated = (_nameVersion++ > 1);
 	if (nameUpdated) {
 		oldFirstLetters = nameFirstLetters();
 		flags |= UpdateFlag::Name;
@@ -216,7 +248,7 @@ not_null<Ui::EmptyUserpic*> PeerData::ensureEmptyUserpic() const {
 	if (!_userpicEmpty) {
 		_userpicEmpty = std::make_unique<Ui::EmptyUserpic>(
 			Data::PeerUserpicColor(id),
-			name);
+			name());
 	}
 	return _userpicEmpty.get();
 }
@@ -564,14 +596,14 @@ void PeerData::fillNames() {
 		}
 	};
 
-	appendToIndex(name);
+	appendToIndex(name());
 	const auto appendTranslit = !toIndexList.isEmpty()
 		&& cRussianLetters().match(toIndexList.front()).hasMatch();
 	if (appendTranslit) {
 		appendToIndex(translitRusEng(toIndexList.front()));
 	}
 	if (const auto user = asUser()) {
-		if (user->nameOrPhone != name) {
+		if (user->nameOrPhone != name()) {
 			appendToIndex(user->nameOrPhone);
 		}
 		appendToIndex(user->username);
@@ -732,29 +764,33 @@ not_null<const PeerData*> PeerData::migrateToOrMe() const {
 	return this;
 }
 
-const Ui::Text::String &PeerData::topBarNameText() const {
+const QString &PeerData::topBarNameText() const {
 	if (const auto to = migrateTo()) {
 		return to->topBarNameText();
 	} else if (const auto user = asUser()) {
-		if (!user->phoneText.isEmpty()) {
-			return user->phoneText;
+		if (!user->nameOrPhone.isEmpty()) {
+			return user->nameOrPhone;
 		}
 	}
-	return _nameText;
+	return _name;
 }
 
-const Ui::Text::String &PeerData::nameText() const {
+int PeerData::nameVersion() const {
+	return _nameVersion;
+}
+
+const QString &PeerData::name() const {
 	if (const auto to = migrateTo()) {
-		return to->nameText();
+		return to->name();
 	}
-	return _nameText;
+	return _name;
 }
 
 const QString &PeerData::shortName() const {
 	if (const auto user = asUser()) {
 		return user->firstName.isEmpty() ? user->lastName : user->firstName;
 	}
-	return name;
+	return _name;
 }
 
 QString PeerData::userName() const {
@@ -1066,8 +1102,8 @@ std::optional<QString> RestrictionError(
 			auto restrictedUntil = channel->restrictedUntil();
 			if (restrictedUntil > 0 && !ChannelData::IsRestrictedForever(restrictedUntil)) {
 				auto restrictedUntilDateTime = base::unixtime::parse(channel->restrictedUntil());
-				auto date = restrictedUntilDateTime.toString(cDateFormat());
-				auto time = restrictedUntilDateTime.toString(cTimeFormat());
+				auto date = QLocale().toString(restrictedUntilDateTime, cDateFormat());
+				auto time = QLocale().toString(restrictedUntilDateTime, cTimeFormat());
 
 				switch (restriction) {
 				case Flag::SendPolls:
@@ -1121,6 +1157,25 @@ std::optional<QString> RestrictionError(
 				: tr::lng_restricted_send_inline(tr::now);
 		}
 		Unexpected("Restriction in Data::RestrictionErrorKey.");
+	}
+	return std::nullopt;
+}
+
+std::optional<QString> RestrictionError(
+		not_null<PeerData*> peer,
+		UserRestriction restriction) {
+	const auto user = peer->asUser();
+	if (user && !user->canReceiveVoices()) {
+		const auto voice = restriction == UserRestriction::SendVoiceMessages;
+		if (voice
+			|| (restriction == UserRestriction::SendVideoMessages)) {
+			return (voice
+				? tr::lng_restricted_send_voice_messages
+				: tr::lng_restricted_send_video_messages)(
+					tr::now,
+					lt_user,
+					user->name());
+		}
 	}
 	return std::nullopt;
 }

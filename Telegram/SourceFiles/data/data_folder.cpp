@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "dialogs/dialogs_key.h"
 #include "history/history.h"
 #include "history/history_item.h"
+#include "ui/painter.h"
 #include "lang/lang_keys.h"
 #include "storage/storage_facade.h"
 #include "core/application.h"
@@ -133,6 +134,10 @@ void Folder::unregisterOne(not_null<History*> history) {
 		computeChatListMessage();
 	}
 	reorderLastHistories();
+}
+
+int Folder::chatListNameVersion() const {
+	return 1;
 }
 
 void Folder::oneListMessageChanged(HistoryItem *from, HistoryItem *to) {

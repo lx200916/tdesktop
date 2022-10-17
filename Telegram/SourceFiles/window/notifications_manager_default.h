@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "window/notifications_manager.h"
 #include "ui/effects/animations.h"
+#include "ui/text/text.h"
 #include "ui/rp_widget.h"
 #include "base/timer.h"
 #include "base/binary_guard.h"
@@ -112,7 +113,7 @@ private:
 
 		not_null<History*> history;
 		not_null<PeerData*> peer;
-		QString reaction;
+		Data::ReactionId reaction;
 		QString author;
 		HistoryItem *item = nullptr;
 		int forwardedCount = 0;
@@ -207,7 +208,7 @@ public:
 		not_null<PeerData*> peer,
 		const QString &author,
 		HistoryItem *item,
-		const QString &reaction,
+		const Data::ReactionId &reaction,
 		int forwardedCount,
 		bool fromScheduled,
 		QPoint startPosition,
@@ -260,15 +261,21 @@ private:
 	void changeHeight(int newHeight);
 	void updateGeometry(int x, int y, int width, int height) override;
 	void actionsOpacityCallback();
+	void repaintText();
+	void paintText(Painter &p);
+	void customEmojiCallback();
 
 	[[nodiscard]] Notifications::Manager::NotificationId myId() const;
 
 	const not_null<PeerData*> _peer;
 
-	QPixmap _cache;
+	QImage _cache;
+	Ui::Text::String _textCache;
+	QRect _textRect;
 
 	bool _hideReplyButton = false;
 	bool _actionsVisible = false;
+	bool _textRepaintScheduled = false;
 	Ui::Animations::Simple a_actionsOpacity;
 	QPixmap _buttonsCache;
 
@@ -277,7 +284,7 @@ private:
 	History *_history = nullptr;
 	std::shared_ptr<Data::CloudImageView> _userpicView;
 	QString _author;
-	QString _reaction;
+	Data::ReactionId _reaction;
 	HistoryItem *_item = nullptr;
 	int _forwardedCount = 0;
 	bool _fromScheduled = false;

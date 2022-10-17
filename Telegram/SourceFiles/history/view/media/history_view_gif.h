@@ -101,10 +101,6 @@ public:
 	QPoint resolveCustomInfoRightBottom() const override;
 	QString additionalInfoString() const override;
 
-	void stickerClearLoopPlayed() override {
-		_stickerOncePlayed = false;
-	}
-
 	bool skipBubbleTail() const override {
 		return isRoundedInBubbleBottom() && _caption.isEmpty();
 	}
@@ -124,6 +120,9 @@ private:
 
 	void validateVideoThumbnail() const;
 	[[nodiscard]] QSize countThumbSize(int &inOutWidthMax) const;
+	[[nodiscard]] int adjustHeightForLessCrop(
+		QSize dimensions,
+		QSize current) const;
 
 	float64 dataProgress() const override;
 	bool dataFinished() const override;
@@ -162,6 +161,16 @@ private:
 	[[nodiscard]] int additionalWidth() const;
 	[[nodiscard]] bool isUnwrapped() const;
 
+	void validateThumbCache(
+		QSize outer,
+		ImageRoundRadius radius,
+		RectParts corners) const;
+	[[nodiscard]] QImage prepareThumbCache(
+		QSize outer,
+		ImageRoundRadius radius,
+		RectParts corners) const;
+	[[nodiscard]] QImage prepareThumbCache(QSize outer) const;
+
 	void validateGroupedCache(
 		const QRect &geometry,
 		RectParts corners,
@@ -181,22 +190,16 @@ private:
 		StateRequest request,
 		QPoint position) const;
 
-	void paintPath(
-		Painter &p,
-		const PaintContext &context,
-		const QRect &r) const;
-
 	const not_null<DocumentData*> _data;
-	int _thumbw = 1;
-	int _thumbh = 1;
 	Ui::Text::String _caption;
 	std::unique_ptr<Streamed> _streamed;
 	mutable std::shared_ptr<Data::DocumentMedia> _dataMedia;
 	mutable std::unique_ptr<Image> _videoThumbnailFrame;
-	ClickHandlerPtr _stickerLink;
-
 	QString _downloadSize;
-	mutable bool _stickerOncePlayed = false;
+	mutable QImage _thumbCache;
+	mutable int _thumbCacheRoundRadius : 4 = 0;
+	mutable int _thumbCacheRoundCorners : 12 = 0;
+	mutable int _thumbCacheBlurred : 1 = 0;
 
 };
 
